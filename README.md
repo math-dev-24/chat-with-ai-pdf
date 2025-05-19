@@ -2,12 +2,12 @@
 
 ## Présentation
 
-J'ai plusieurs documents pdf technique. 
+Dans Obsidian j'ai plusieurs ressources de PDF techniques.
 
-Je souhaites extraire : 
+Pour essayer de facilité la tâches à la recherche AI, je vais extraire :
 - les points / remarques les plus importantes
 - Les images
-- Vectorisé la données afin de recherche facilement dedans
+- Vectorisé la data
 - ...
 
 ## Stack
