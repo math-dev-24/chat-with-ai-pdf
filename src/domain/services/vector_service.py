@@ -1,406 +1,299 @@
-import logging
-import hashlib
-from typing import List, Dict, Any, Optional
+import chromadb
+from sentence_transformers import SentenceTransformer
 from pathlib import Path
-from src.domain.ports.embedding import EmbeddingConnector
-from src.domain.ports.vector import VectorConnector, Document, SearchResult
-from src.tools.text_extract import PDFChapterExtractor
+from typing import List, Dict, Any, Union
+import logging
+import time
+from src.tools.document_processor import DocumentProcessor
 
 
-class VectorService:
-    """Service qui orchestre la vectorisation et la recherche de documents."""
+class VectorStore:
+    """Service de base vectorielle avec support LangChain"""
 
-    def __init__(
-            self,
-            vector_adapter: VectorConnector,
-            embedding_adapter: EmbeddingConnector,
-    ):
-        self.vector_adapter = vector_adapter
-        self.embedding_adapter = embedding_adapter
-        self.logger = logging.getLogger(__name__)
-
-    def initialize(self, vector_config: Dict[str, Any], embedding_config: Dict[str, Any]) -> None:
+    def __init__(self, collection_name: str = "documents", persist_directory: str = "./chroma_db"):
         """
-        Initialise les deux adaptateurs.
+        Initialise le VectorStore
 
         Args:
-            vector_config: Configuration pour la base vectorielle
-            embedding_config: Configuration pour le générateur d'embeddings
+            collection_name: Nom de la collection Chroma
+            persist_directory: Répertoire de persistance
         """
-        self.logger.info("🚀 Initialisation du VectorService")
+        self.persist_directory = persist_directory
+        self.client = chromadb.PersistentClient(path=persist_directory)
+        self.collection = self.client.get_or_create_collection(name=collection_name)
 
-        try:
-            self.embedding_adapter.initialize(embedding_config)
-            self.vector_adapter.initialize(vector_config)
+        # Modèle d'embedding (gardez votre modèle actuel ou changez)
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-            if not self.vector_adapter.health_check():
-                raise Exception("Health check de la base vectorielle a échoué")
+        # Nouveau processeur de documents avec LangChain
+        self.document_processor = DocumentProcessor(
+            chunk_size=1000,
+            chunk_overlap=200
+        )
 
-            self.logger.info("✅ VectorService initialisé avec succès")
+        logging.info(f"VectorStore initialisé avec collection '{collection_name}'")
 
-        except Exception as e:
-            self.logger.error(f"❌ Erreur lors de l'initialisation: {e}")
-            raise
-
-    def add_pdf_document_by_chapters(
-            self,
-            pdf_path: Path,
-            pdf_name: Optional[str] = None
-    ) -> None:
+    def add_documents_from_files(self, file_paths: List[Union[Path, str]]) -> Dict[str, Any]:
         """
-        Ajoute un document PDF à la base vectorielle en le découpant par chapitres.
+        MÉTHODE MISE À JOUR: Ajoute des documents via LangChain
+        Compatible avec votre code existant
 
         Args:
-            pdf_path: Chemin vers le fichier PDF
-            pdf_name: Nom du fichier PDF (optionnel, utilise le nom du fichier si non fourni)
-        """
-        if pdf_name is None:
-            pdf_name = pdf_path.name
-
-        self.logger.info(f"📄 Ajout du document par chapitres: {pdf_name}")
-
-        try:
-            # Génération d'un ID unique pour le document
-            document_id = self._generate_document_id(pdf_name, pdf_path)
-
-            # Vérification si le document existe déjà
-            if self.vector_adapter.document_exists(document_id):
-                self.logger.info(f"📋 Document {pdf_name} déjà présent, suppression de l'ancien")
-                self.remove_pdf_document(pdf_name, pdf_path)
-
-            # Extraction par chapitres
-            with PDFChapterExtractor(str(pdf_path)) as extractor:
-                chapters = extractor.extract_chapters()
-
-            self.logger.info(f"📚 Document découpé en {len(chapters)} chapitres")
-
-            # Création des documents avec métadonnées
-            documents = []
-            for i, chapter in enumerate(chapters):
-                chapter_id = f"{document_id}_chapter_{i}"
-
-                # Préparation du contenu avec titre intégré
-                content = f"# {chapter['title']}\n\n{chapter['content']}"
-
-                doc = Document(
-                    id=chapter_id,
-                    content=content,
-                    metadata={
-                        "source_pdf": pdf_name,
-                        "pdf_path": str(pdf_path),
-                        "chapter_index": i,
-                        "chapter_title": chapter['title'],
-                        "total_chapters": len(chapters),
-                        "original_document_id": document_id,
-                        "content_type": "chapter",
-                        "content_length": len(chapter['content'])
-                    }
-                )
-                documents.append(doc)
-
-            # Génération des embeddings par batch pour optimiser
-            self._generate_embeddings_for_documents(documents)
-
-            # Ajout à la base vectorielle
-            self.vector_adapter.add_documents(documents)
-
-            self.logger.info(f"✅ Document {pdf_name} ajouté avec {len(chapters)} chapitres")
-
-        except Exception as e:
-            self.logger.error(f"❌ Erreur lors de l'ajout du document {pdf_name}: {e}")
-            raise
-
-    def add_pdf_document(
-            self,
-            pdf_name: str,
-            text: str,
-            pdf_path: Path,
-            chunk_size: int = 1000,
-            chunk_overlap: int = 200
-    ) -> None:
-        """
-        Ajoute un document PDF à la base vectorielle en le découpant en chunks.
-        (Méthode originale conservée pour compatibilité)
-
-        Args:
-            pdf_name: Nom du fichier PDF
-            text: Contenu textuel du PDF
-            pdf_path: Chemin vers le fichier PDF
-            chunk_size: Taille des chunks en caractères
-            chunk_overlap: Chevauchement entre chunks
-        """
-        self.logger.info(f"📄 Ajout du document par chunks: {pdf_name}")
-
-        try:
-            # Génération d'un ID unique pour le document
-            document_id = self._generate_document_id(pdf_name, pdf_path)
-
-            # Vérification si le document existe déjà
-            if self.vector_adapter.document_exists(document_id):
-                self.logger.info(f"📋 Document {pdf_name} déjà présent, suppression de l'ancien")
-                self.vector_adapter.delete_documents([document_id])
-
-            # Découpage du texte en chunks
-            chunks = self._chunk_text(text, chunk_size, chunk_overlap)
-            self.logger.info(f"✂️ Texte découpé en {len(chunks)} chunks")
-
-            # Création des documents avec métadonnées
-            documents = []
-            for i, chunk in enumerate(chunks):
-                chunk_id = f"{document_id}_chunk_{i}"
-                doc = Document(
-                    id=chunk_id,
-                    content=chunk,
-                    metadata={
-                        "source_pdf": pdf_name,
-                        "pdf_path": str(pdf_path),
-                        "chunk_index": i,
-                        "total_chunks": len(chunks),
-                        "original_document_id": document_id,
-                        "content_type": "chunk"
-                    }
-                )
-                documents.append(doc)
-
-            # Génération des embeddings par batch pour optimiser
-            self._generate_embeddings_for_documents(documents)
-
-            # Ajout à la base vectorielle
-            self.vector_adapter.add_documents(documents)
-
-            self.logger.info(f"✅ Document {pdf_name} ajouté avec {len(chunks)} chunks")
-
-        except Exception as e:
-            self.logger.error(f"❌ Erreur lors de l'ajout du document {pdf_name}: {e}")
-            raise
-
-    def search_documents(
-            self,
-            query: str,
-            top_k: int = 5,
-            filters: Optional[Dict[str, Any]] = None
-    ) -> List[SearchResult]:
-        """
-        Recherche des documents similaires à la requête.
-
-        Args:
-            query: Requête de recherche
-            top_k: Nombre de résultats à retourner
-            filters: Filtres optionnels sur les métadonnées
+            file_paths: Liste des chemins de fichiers (Path objects ou strings)
 
         Returns:
-            Liste des résultats de recherche
+            Statistiques du traitement
         """
-        self.logger.info(f"🔍 Recherche: '{query}' (top_{top_k})")
-
-        try:
-            results = self.vector_adapter.search_similar(query, top_k, filters)
-            self.logger.info(f"📊 {len(results)} résultats trouvés")
-            return results
-
-        except Exception as e:
-            self.logger.error(f"❌ Erreur lors de la recherche: {e}")
-            raise
-
-    def search_by_pdf(self, query: str, pdf_name: str, top_k: int = 5) -> List[SearchResult]:
-        """
-        Recherche dans un PDF spécifique.
-
-        Args:
-            query: Requête de recherche
-            pdf_name: Nom du PDF à cibler
-            top_k: Nombre de résultats
-
-        Returns:
-            Liste des résultats de recherche
-        """
-        filters = {"source_pdf": pdf_name}
-        return self.search_documents(query, top_k, filters)
-
-    def search_by_chapter(self, query: str, pdf_name: str, top_k: int = 5) -> List[SearchResult]:
-        """
-        Recherche dans les chapitres d'un PDF spécifique.
-
-        Args:
-            query: Requête de recherche
-            pdf_name: Nom du PDF à cibler
-            top_k: Nombre de résultats
-
-        Returns:
-            Liste des résultats de recherche
-        """
-        filters = {"source_pdf": pdf_name, "content_type": "chapter"}
-        return self.search_documents(query, top_k, filters)
-
-    def get_context_for_query(
-            self,
-            query: str,
-            max_context_length: int = 4000,
-            top_k: int = 10,
-            prefer_chapters: bool = True
-    ) -> str:
-        """
-        Récupère le contexte le plus pertinent pour une requête.
-        Utile pour alimenter un LLM avec du contexte.
-
-        Args:
-            query: Requête
-            max_context_length: Longueur maximale du contexte
-            top_k: Nombre de chunks à considérer
-            prefer_chapters: Privilégier les chapitres plutôt que les chunks
-
-        Returns:
-            Contexte formaté
-        """
-        # Filtrer par type de contenu si demandé
-        filters = {"content_type": "chapter"} if prefer_chapters else None
-        results = self.search_documents(query, top_k, filters)
-
-        # Si pas assez de résultats avec chapitres, rechercher dans tout
-        if prefer_chapters and len(results) < 3:
-            results = self.search_documents(query, top_k)
-
-        context_parts = []
-        current_length = 0
-
-        for result in results:
-            chunk_text = result.document.content
-            source = result.document.metadata.get("source_pdf", "Unknown")
-
-            # Ajouter titre du chapitre si disponible
-            chapter_title = result.document.metadata.get("chapter_title")
-            if chapter_title:
-                formatted_chunk = f"[{source} - {chapter_title}]\n{chunk_text}\n"
+        # Conversion en Path objects si nécessaire
+        path_objects = []
+        for fp in file_paths:
+            if isinstance(fp, str):
+                path_objects.append(Path(fp))
             else:
-                formatted_chunk = f"[{source}]\n{chunk_text}\n"
+                path_objects.append(fp)
 
-            if current_length + len(formatted_chunk) > max_context_length:
-                break
+        logging.info(f"🚀 Traitement de {len(path_objects)} fichier(s) avec LangChain...")
 
-            context_parts.append(formatted_chunk)
-            current_length += len(formatted_chunk)
+        # Traitement avec LangChain
+        chunks = self.document_processor.process_files(path_objects)
 
-        return "\n---\n".join(context_parts)
-
-    def remove_pdf_document(self, pdf_name: str, pdf_path: Path) -> None:
-        """
-        Supprime tous les chunks/chapitres d'un document PDF.
-
-        Args:
-            pdf_name: Nom du PDF
-            pdf_path: Chemin du PDF
-        """
-        self.logger.info(f"🗑️ Suppression du document: {pdf_name}")
-
-        try:
-            document_id = self._generate_document_id(pdf_name, pdf_path)
-
-            # Recherche de tous les chunks/chapitres du document
-            filters = {"original_document_id": document_id}
-            results = self.vector_adapter.search_similar("", top_k=1000, filters=filters)
-
-            chunk_ids = [result.document.id for result in results]
-
-            if chunk_ids:
-                self.vector_adapter.delete_documents(chunk_ids)
-                self.logger.info(f"✅ {len(chunk_ids)} éléments supprimés pour {pdf_name}")
-            else:
-                self.logger.info(f"📋 Aucun élément trouvé pour {pdf_name}")
-
-        except Exception as e:
-            self.logger.error(f"❌ Erreur lors de la suppression de {pdf_name}: {e}")
-            raise
-
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Retourne des statistiques sur la base vectorielle.
-
-        Returns:
-            Dictionnaire avec les statistiques
-        """
-        try:
-            total_docs = self.vector_adapter.get_document_count()
-            embedding_dim = self.embedding_adapter.get_dimension()
-
-
+        if not chunks:
+            logging.warning("Aucun chunk à traiter")
             return {
-                "total_documents": total_docs,
-                "embedding_dimension": embedding_dim,
-                "health_status": self.vector_adapter.health_check()
+                'total_chunks': 0,
+                'total_files': 0,
+                'files_processed': []
             }
 
-        except Exception as e:
-            self.logger.error(f"❌ Erreur lors de la récupération des statistiques: {e}")
-            return {"error": str(e)}
+        # Ajout à la collection
+        self._add_chunks_to_collection(chunks)
 
-    def _generate_document_id(self, pdf_name: str, pdf_path: Path) -> str:
-        """Génère un ID unique pour un document basé sur son nom et chemin."""
-        content = f"{pdf_name}_{pdf_path}"
-        return hashlib.md5(content.encode()).hexdigest()
+        # Statistiques
+        stats = self.document_processor.get_chunk_info(chunks)
+        logging.info(f"✅ Terminé! {stats}")
 
-    def _chunk_text(self, text: str, chunk_size: int, overlap: int) -> List[str]:
+        return stats
+
+    def _add_chunks_to_collection(self, chunks: List) -> None:
         """
-        Découpe un texte en chunks avec chevauchement.
+        Méthode interne pour ajouter des chunks à la collection
 
         Args:
-            text: Texte à découper
-            chunk_size: Taille des chunks
-            overlap: Chevauchement
+            chunks: Liste des chunks LangChain
+        """
+        # Préparation des données pour Chroma avec IDs uniques
+        texts = [chunk.page_content for chunk in chunks]
+        metadatas = [chunk.metadata for chunk in chunks]
+
+        # Génération d'IDs uniques pour éviter les conflits
+        timestamp = int(time.time())
+        ids = [f"{chunk.metadata['source_file']}_{chunk.metadata['chunk_id']}_{timestamp}_{idx}"
+               for idx, chunk in enumerate(chunks)]
+
+        # Vectorisation
+        logging.info(f"🔄 Vectorisation de {len(texts)} chunks...")
+        embeddings = self.embedding_model.encode(texts).tolist()
+
+        # Ajout à Chroma avec gestion robuste des gros volumes
+        batch_size = 50  # Réduit pour éviter les timeouts
+        total_batches = (len(texts) + batch_size - 1) // batch_size
+
+        logging.info(f"💾 Ajout en {total_batches} batch(s) de {batch_size} chunks...")
+
+        for i in range(0, len(texts), batch_size):
+            batch_num = i // batch_size + 1
+            batch_texts = texts[i:i+batch_size]
+            batch_embeddings = embeddings[i:i+batch_size]
+            batch_metadatas = metadatas[i:i+batch_size]
+            batch_ids = ids[i:i+batch_size]
+
+            try:
+                # Nettoyage des métadonnées pour éviter les caractères problématiques
+                clean_metadatas = []
+                for metadata in batch_metadatas:
+                    clean_metadata = {}
+                    for key, value in metadata.items():
+                        if isinstance(value, str):
+                            # Nettoie les caractères Unicode problématiques
+                            clean_value = value.encode('utf-8', 'ignore').decode('utf-8')
+                            clean_metadata[key] = clean_value
+                        else:
+                            clean_metadata[key] = value
+                    clean_metadatas.append(clean_metadata)
+
+                self.collection.add(
+                    documents=batch_texts,
+                    embeddings=batch_embeddings,
+                    metadatas=clean_metadatas,
+                    ids=batch_ids
+                )
+
+                if batch_num % 10 == 0 or batch_num == total_batches:
+                    logging.info(f"   📊 Batch {batch_num}/{total_batches} ajouté ({len(batch_texts)} chunks)")
+
+            except Exception as e:
+                logging.error(f"❌ Erreur batch {batch_num}: {e}")
+                # Continue avec le batch suivant plutôt que d'échouer complètement
+                continue
+
+    def get_context_for_query(self, query: str, max_context_length: int = 4000, n_results: int = 5) -> str:
+        """
+        Args:
+            query: Question de l'utilisateur
+            max_context_length: Longueur max du contexte
+            prefer_chapters: Préférence pour les chapitres (peut être ignoré pour l'instant)
+            n_results: Nombre de résultats à récupérer
 
         Returns:
-            Liste des chunks
+            Contexte formaté pour le LLM
         """
-        if len(text) <= chunk_size:
-            return [text]
-
-        chunks = []
-        start = 0
-
-        while start < len(text):
-            end = start + chunk_size
-
-            # Si on n'est pas à la fin, essaie de couper à un espace
-            if end < len(text):
-                # Cherche le dernier espace dans les 100 derniers caractères
-                last_space = text.rfind(' ', end - 100, end)
-                if last_space > start:
-                    end = last_space
-
-            chunk = text[start:end].strip()
-            if chunk:
-                chunks.append(chunk)
-
-            # Avance avec chevauchement
-            start = end - overlap
-
-            # Évite les boucles infinies
-            if start >= end:
-                start = end
-
-        return chunks
-
-    def _generate_embeddings_for_documents(self, documents: List[Document]) -> None:
-        """
-        Génère les embeddings pour une liste de documents.
-
-        Args:
-            documents: Liste des documents
-        """
-        texts = [doc.content for doc in documents]
-
         try:
-            # Génération par batch pour optimiser
-            embeddings = self.embedding_adapter.generate_embeddings_batch(texts)
+            query_embedding = self.embedding_model.encode([query]).tolist()
 
-            for doc, embedding in zip(documents, embeddings):
-                doc.embedding = embedding
+            results = self.collection.query(
+                query_embeddings=query_embedding,
+                n_results=n_results,
+                include=["documents", "metadatas", "distances"]
+            )
+
+            if not results["documents"] or not results["documents"][0]:
+                return "Aucun contexte trouvé."
+
+            context_parts = []
+            current_length = 0
+
+            documents = results["documents"][0]
+            metadatas = results["metadatas"][0] if results["metadatas"] else []
+            distances = results["distances"][0] if results["distances"] else []
+
+            for i, (doc, metadata, distance) in enumerate(zip(documents, metadatas, distances)):
+                if current_length + len(doc) > max_context_length:
+                    break
+
+                source_info = ""
+                if metadata:
+                    source_file = metadata.get('source_file', 'Unknown')
+                    page_info = metadata.get('page', '')
+                    if page_info:
+                        source_info = f"[Source: {source_file}, Page: {page_info}]"
+                    else:
+                        source_info = f"[Source: {source_file}]"
+
+                context_part = f"{source_info}\n{doc}\n---"
+                context_parts.append(context_part)
+                current_length += len(context_part)
+
+            context = "\n".join(context_parts)
+
+            logging.info(f"🔍 Contexte généré: {len(context)} caractères, {len(context_parts)} sources")
+            return context
 
         except Exception as e:
-            self.logger.error(f"❌ Erreur lors de la génération des embeddings: {e}")
-            # Fallback: génération individuelle
-            for doc in documents:
-                try:
-                    doc.embedding = self.embedding_adapter.generate_embedding(doc.content)
-                except Exception as embedding_error:
-                    self.logger.error(f"❌ Erreur embedding pour chunk: {embedding_error}")
-                    raise
+            logging.error(f"❌ Erreur lors de la recherche: {e}")
+            return f"Erreur lors de la recherche: {str(e)}"
+
+    def search_with_metadata(self, query: str, n_results: int = 5, file_filter: str = None) -> Dict[str, Any]:
+        """
+        Args:
+            query: Requête de recherche
+            n_results: Nombre de résultats
+            file_filter: Filtrer par nom de fichier
+
+        Returns:
+            Résultats de la recherche
+        """
+        try:
+            query_embedding = self.embedding_model.encode([query]).tolist()
+
+            # Filtrage optionnel par fichier
+            where_clause = {}
+            if file_filter:
+                where_clause["source_file"] = {"$eq": file_filter}
+
+            results = self.collection.query(
+                query_embeddings=query_embedding,
+                n_results=n_results,
+                where=where_clause if where_clause else None,
+                include=["documents", "metadatas", "distances"]
+            )
+
+            return results
+        except Exception as e:
+            logging.error(f"❌ Erreur recherche avec métadonnées: {e}")
+            return {"error": str(e)}
+
+    def get_file_list(self) -> List[str]:
+        try:
+            all_data = self.collection.get(include=["metadatas"])
+            files = set()
+            for metadata in all_data["metadatas"]:
+                if metadata and "source_file" in metadata:
+                    files.add(metadata["source_file"])
+            return sorted(list(files))
+        except Exception as e:
+            logging.error(f"❌ Erreur récupération liste fichiers: {e}")
+            return []
+
+    def get_collection_stats(self) -> Dict[str, Any]:
+        try:
+            count = self.collection.count()
+            files = self.get_file_list()
+
+            return {
+                "total_chunks": count,
+                "total_files": len(files),
+                "files": files
+            }
+        except Exception as e:
+            logging.error(f"❌ Erreur statistiques collection: {e}")
+            return {
+                "total_chunks": 0,
+                "total_files": 0,
+                "files": [],
+                "error": str(e)
+            }
+
+    def clear_collection(self) -> bool:
+        try:
+            # Supprime et recrée la collection
+            collection_name = self.collection.name
+            self.client.delete_collection(collection_name)
+            self.collection = self.client.create_collection(collection_name)
+            logging.info("🗑️ Collection vidée avec succès")
+            return True
+        except Exception as e:
+            logging.error(f"❌ Erreur lors du vidage: {e}")
+            return False
+
+    def get_collection_size(self) -> int:
+        try:
+            return self.collection.count()
+        except Exception as e:
+            logging.error(f"❌ Erreur lors du comptage: {e}")
+            return 0
+
+    def delete_file_chunks(self, file_name: str) -> bool:
+        """
+        Args:
+            file_name: Nom du fichier à supprimer
+
+        Returns:
+            True si succès
+        """
+        try:
+            results = self.collection.get(
+                where={"source_file": {"$eq": file_name}},
+                include=["metadatas"]
+            )
+
+            if results["ids"]:
+                self.collection.delete(ids=results["ids"])
+                logging.info(f"🗑️ Supprimé {len(results['ids'])} chunks du fichier {file_name}")
+                return True
+            else:
+                logging.info(f"Aucun chunk trouvé pour le fichier {file_name}")
+                return True
+
+        except Exception as e:
+            logging.error(f"❌ Erreur suppression fichier {file_name}: {e}")
+            return False

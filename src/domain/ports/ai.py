@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
-from src.data.prompt import PROMPT
 
 
 class AiConnector(ABC):
@@ -39,8 +38,11 @@ class AiConnector(ABC):
     @staticmethod
     def clean_result(text: str) -> str:
         import re
-        return re.sub(r'```', '', text)
+        text = re.sub(r'```html', '', text)
+        text = re.sub(r'```', '', text)
+        return text
 
     @staticmethod
     def get_prompt() -> str:
-        return PROMPT
+        with open("prompt.txt") as f:
+            return f.read()

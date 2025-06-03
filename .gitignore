@@ -2,5 +2,4 @@
 .venv
 main.log
 .idea
-src/data/vector_db.json
-src/data/prompt.py
+src/data

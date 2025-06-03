@@ -61,7 +61,7 @@ class OpenAiConnector(AiConnector):
             max_tokens=4000
         )
 
-        return response.choices[0].message.content
+        return AiConnector.clean_result(response.choices[0].message.content)
 
 
     def _check(self) -> None:
@@ -80,7 +80,8 @@ class OpenAiConnector(AiConnector):
             logging.error(e)
 
 
-    def _generate_message(self, question: str, context: str, historic: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    @staticmethod
+    def _generate_message(question: str, context: str, historic: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """
          Génère la liste des messages pour l'API OpenAI
 
