@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Interface</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 h-screen overflow-hidden">
+
+<nav class="bg-white/70 backdrop-blur-sm border-b border-slate-200/50 px-6 py-4">
+    <ul class="flex gap-4">
+        <li>
+            <a href="/" class="text-slate-600 hover:text-slate-800 transition-colors duration-200 text-sm font-medium">
+                Accueil
+            </a>
+        </li>
+        <li>
+            <a href="/documentation" class="text-purple-600 text-sm font-medium">
+                Gestion des PDFS
+            </a>
+        </li>
+        <li>
+            <a href="/docs" class="text-slate-600 hover:text-slate-800 transition-colors duration-200 text-sm font-medium">
+                Documentation API
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<div id="app" class="flex h-[92%]">
+    <div class="flex-1 flex flex-col p-4">
+        <!-- Main Content Container -->
+        <div class="flex-1 bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm p-8">
+            <div class="max-w-2xl mx-auto">
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-light text-slate-800 mb-2">Gestion des PDFs</h1>
+                    <p class="text-slate-600">Vectorisez vos documents PDF pour une recherche optimisée</p>
+                </div>
+
+ <!-- Statistics Card -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-medium text-slate-800">Statistiques de la base vectorielle</h2>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            <span class="text-xs text-slate-500">En direct</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="text-center group">
+                            <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 mb-3 group-hover:from-blue-100 group-hover:to-purple-100 transition-all duration-200">
+                                <div class="w-8 h-8 mx-auto mb-2 text-blue-600">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-2xl font-bold text-slate-800 mb-1">{{ statState.total_documents || '0' }}</div>
+                                <div class="text-sm font-medium text-slate-600">Chunks</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center group">
+                            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 mb-3 group-hover:from-purple-100 group-hover:to-pink-100 transition-all duration-200">
+                                <div class="w-8 h-8 mx-auto mb-2 text-purple-600">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-2xl font-bold text-slate-800 mb-1">{{ statState.embedding_dimension || '0' }}</div>
+                                <div class="text-sm font-medium text-slate-600">Dimensions</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center group">
+                            <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-4 mb-3 group-hover:from-green-100 group-hover:to-teal-100 transition-all duration-200">
+                                <div class="w-8 h-8 mx-auto mb-2" :class="{
+                                    'text-green-600': statState.health_status === 'healthy' || statState.health_status === 'OK',
+                                    'text-orange-600': statState.health_status === 'warning',
+                                    'text-red-600': statState.health_status === 'error' || statState.health_status === 'unhealthy'
+                                }">
+                                    <svg v-if="statState.health_status === 'healthy' || statState.health_status === 'OK'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <svg v-else-if="statState.health_status === 'warning'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                    </svg>
+                                    <svg v-else fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-2xl font-bold text-slate-800 mb-1" :class="{
+                                    'text-green-600': statState.health_status === 'healthy' || statState.health_status === 'OK',
+                                    'text-orange-600': statState.health_status === 'warning',
+                                    'text-red-600': statState.health_status === 'error' || statState.health_status === 'unhealthy'
+                                }">
+                                    {{ statState.health_status ? "OK" : "NOK" }}
+                                </div>
+                                <div class="text-sm font-medium text-slate-600">Statut</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Card -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-lg font-medium text-slate-800">Traitement des documents</h2>
+                            <p class="text-sm text-slate-600">Vectoriser tous les PDFs disponibles</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <button
+                        @click="handleLoadPdf"
+                        :disabled="vectorState.inLoading"
+                        :class="{
+                            'bg-gradient-to-r from-blue-400 to-purple-400 hover:from-blue-500 hover:to-purple-500 text-white shadow-sm': !vectorState.inLoading,
+                            'bg-gray-200 text-gray-400 cursor-not-allowed': vectorState.inLoading
+                        }"
+                        class="w-full px-6 py-3 rounded-xl font-medium transition-all duration-200 focus:ring-2 focus:ring-blue-200 focus:ring-offset-2"
+                    >
+                        <span v-if="!vectorState.inLoading" class="flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                            </svg>
+                            <span>Vectoriser les données</span>
+                        </span>
+                        <span v-else class="flex items-center justify-center space-x-2">
+                            <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Traitement en cours...</span>
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Results Section -->
+                <div v-if="vectorState.processed_count > 0 || vectorState.errors.length > 0"
+                     class="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm p-6">
+
+                    <!-- Success Summary -->
+                    <div v-if="vectorState.processed_count > 0" class="mb-6">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-slate-800">Traitement réussi</h3>
+                                <p class="text-sm text-slate-600">{{ vectorState.processed_count }} fichier(s) traité(s)</p>
+                            </div>
+                        </div>
+
+                        <!-- Processed Files List -->
+                        <div v-if="vectorState.processed_files.length > 0" class="bg-green-50/50 rounded-xl p-4">
+                            <h4 class="text-sm font-medium text-green-800 mb-2">Fichiers traités :</h4>
+                            <div class="space-y-1">
+                                <div v-for="file in vectorState.processed_files" :key="file"
+                                     class="text-sm text-green-700 flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <span>{{ file }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Errors Section -->
+                    <div v-if="vectorState.errors.length > 0">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-slate-800">Erreurs détectées</h3>
+                                <p class="text-sm text-slate-600">{{ vectorState.error_count }} erreur(s) rencontrée(s)</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-red-50/50 rounded-xl p-4">
+                            <div class="space-y-2">
+                                <div v-for="(error, index) in vectorState.errors" :key="index"
+                                     class="text-sm text-red-700 flex items-start space-x-2">
+                                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    <span>{{ error }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const {createApp, reactive, onMounted} = Vue;
+
+    const goLoadPdf = async () => {
+        const res = await fetch('/pdfs/process-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "Accept": "application/json",
+            }
+        });
+        if (!res.ok){
+            throw new Error(res.statusText);
+        }
+        return await res.json()
+    }
+
+    createApp({
+        setup() {
+            const vectorState = reactive({
+                errors: [],
+                error_count: 0,
+                processed_count: 0,
+                processed_files: [],
+                inLoading: false,
+            })
+
+            const statState = reactive({
+                total_documents: 0,
+                embedding_dimension: 0,
+                health_status: true
+            })
+
+            onMounted( async () => {
+                const res = await fetch("/stat")
+
+                if (res.status === 200) {
+                    const data = await res.json()
+                    statState.total_documents = data.total_documents;
+                    statState.embedding_dimension = data.embedding_dimension;
+                    statState.health_status = data.health_status
+                }
+            })
+
+            const handleLoadPdf = async () => {
+                vectorState.errors = [];
+                vectorState.error_count = 0;
+                vectorState.processed_count = 0;
+                vectorState.processed_files = [];
+                vectorState.inLoading = true;
+
+                try {
+                    const res = await goLoadPdf();
+
+                    vectorState.errors = res.errors || [];
+                    vectorState.error_count = res.error_count || 0;
+                    vectorState.processed_count = res.processed_count || 0;
+                    vectorState.processed_files = res.processed_files || [];
+                } catch (error) {
+                    console.error(error);
+                    vectorState.errors = [`Erreur de communication: ${error.message}`];
+                    vectorState.error_count = 1;
+                } finally {
+                    vectorState.inLoading = false;
+                }
+            }
+
+            return {
+                handleLoadPdf,
+                vectorState,
+                statState
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-
 def get_pdf_files(base_path: Path, extensions : list[str]) -> list[Path]:
     """
     :param base_path: Path de base

@@ -1,4 +1,6 @@
 .env
+.venv
 main.log
 .idea
-data/prompt.py
+src/data/vector_db.json
+src/data/prompt.py

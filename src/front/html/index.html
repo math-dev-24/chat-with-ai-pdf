@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Interface</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 h-screen overflow-hidden">
+
+<nav class="bg-white/70 backdrop-blur-sm border-b border-slate-200/50 px-6 py-4">
+    <ul class="flex gap-4">
+        <li>
+            <a href="/" class="text-purple-600 text-sm font-medium">
+                Accueil
+            </a>
+        </li>
+        <li>
+            <a href="/documentation" class="text-slate-600 hover:text-slate-800 transition-colors duration-200 text-sm font-medium">
+                Gestion des PDFS
+            </a>
+        </li>
+        <li>
+            <a href="/docs" class="text-slate-600 hover:text-slate-800 transition-colors duration-200 text-sm font-medium">
+                Documentation API
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<div id="app" class="flex h-[92%]">
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col p-4">
+        <!-- Messages Container -->
+        <div class="flex-1 bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm mb-6 overflow-hidden flex flex-col">
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
+            <div
+                v-for="item in state.dialog"
+                :key="item.id"
+                :class="{
+                    'flex justify-start': item.role === 'system',
+                    'flex justify-end': item.role === 'user'
+                }"
+            >
+                <div
+                    :class="{
+                        'bg-purple-100/70 text-purple-800 border-purple-200/50': item.role === 'system',
+                        'bg-blue-100/70 text-blue-800 border-blue-200/50': item.role === 'user'
+                    }"
+                    class="max-w-xs lg:max-w-2/3 px-4 py-3 rounded-2xl border backdrop-blur-sm"
+                >
+                    <div class="text-xs font-medium opacity-60 mb-1 capitalize">{{ item.role }}</div>
+                    <div v-html="item.message" class="text-sm leading-relaxed"></div>
+                </div>
+            </div>
+
+            <!-- Loading indicator -->
+            <div v-if="state.inLoading" class="flex justify-start">
+                <div class="bg-gray-100/70 text-gray-600 border-gray-200/50 max-w-xs px-4 py-3 rounded-2xl border backdrop-blur-sm">
+                    <div class="flex items-center space-x-2">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        </div>
+                        <span class="text-sm">En cours...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Input Form -->
+        <form @submit.prevent="handleSubmit" class="bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm p-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Votre question</label>
+                    <textarea
+                        v-model="state.answer"
+                        rows="3"
+                        placeholder="Tapez votre message ici..."
+                        class="w-full px-4 py-3 bg-white/80 border border-slate-200 outline-blue-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all duration-200 resize-none text-slate-700 placeholder-slate-400"
+                    ></textarea>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button
+                            @click="toggleContextPanel"
+                            type="button"
+                            class="px-4 py-2 bg-gray-100/80 hover:bg-gray-200/80 text-gray-600 rounded-xl text-sm font-medium transition-all duration-200"
+                        >
+                            {{ state.showContext ? 'Masquer contexte' : 'Voir contexte' }}
+                        </button>
+
+                        <div
+                            v-if="state.error"
+                            class="bg-red-50/80 border border-red-200/50 text-red-600 px-4 py-2 rounded-xl text-sm backdrop-blur-sm"
+                        >
+                            {{ state.error }}
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        :disabled="isDisabled"
+                        :class="{
+                            'bg-gradient-to-r from-blue-400 to-purple-400 hover:from-blue-500 hover:to-purple-500 text-white shadow-sm': !isDisabled,
+                            'bg-gray-200 text-gray-400 cursor-not-allowed': isDisabled
+                        }"
+                        class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 focus:ring-2 focus:ring-blue-200 focus:ring-offset-2"
+                    >
+                        <span v-if="!state.inLoading">Envoyer</span>
+                        <span v-else>Envoi...</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Context Panel Slider -->
+    <div
+        :class="{
+            'translate-x-0': state.showContext,
+            'translate-x-full': !state.showContext
+        }"
+        class="fixed right-0 top-0 h-full w-1/3 bg-white/70 backdrop-blur-sm border-l border-slate-200/50 shadow-lg transform transition-transform duration-300 ease-in-out z-50"
+    >
+        <div class="h-full flex flex-col">
+            <!-- Panel Header -->
+            <div class="p-4 border-b border-slate-200/50">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-medium text-slate-700">Contexte</h3>
+                    <button
+                        @click="toggleContextPanel"
+                        class="p-2 hover:bg-slate-100/80 rounded-lg transition-colors duration-200"
+                    >
+                        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Content -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <div v-if="state.context.length === 0" class="text-center text-slate-500 text-sm mt-8">
+                    Aucun contexte disponible
+                </div>
+                <div v-else class="space-y-3">
+                    <div
+                        v-for="(ctx, index) in state.context"
+                        :key="index"
+                        class="bg-slate-50/80 backdrop-blur-sm rounded-xl p-3 border border-slate-200/50"
+                    >
+                        <div class="text-xs text-slate-500 mb-2">Contexte {{ index + 1 }}</div>
+                        <div class="text-sm text-slate-700 leading-relaxed" v-html="ctx"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay when context panel is open -->
+    <div
+        v-if="state.showContext"
+        @click="toggleContextPanel"
+        class="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+    ></div>
+</div>
+
+<script>
+    const {createApp, reactive, computed} = Vue;
+
+    const response = async (question) => {
+        try {
+            const res = await fetch('/ask', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    method: 'POST',
+                    body: JSON.stringify({question: question})
+                }
+            )
+
+            if(!res.ok) {
+                const errorText = await res.text();
+                console.log('Erreur du serveur:', errorText);
+                throw new Error(`HTTP error! status: ${res.status}, response: ${errorText}`);
+            }
+            return await res.json()
+        } catch (error) {
+            throw error
+        }
+    }
+
+    createApp({
+        setup() {
+            const state = reactive({
+                answer: "",
+                inLoading: false,
+                context: [],
+                dialog: [{
+                    id: 1,
+                    role: "system",
+                    message: `Bonjour ! Comment puis-je vous aider aujourd'hui ?`
+                }],
+                error: '',
+                showContext: false
+            });
+
+            const isDisabled = computed(() => state.answer.trim() === "" || state.inLoading);
+
+            const handleSubmit = async () => {
+                state.error = '';
+                state.inLoading = true;
+
+                if (state.answer.trim() === '') {
+                    state.error = 'Veuillez saisir une question';
+                    state.inLoading = false;
+                    return;
+                }
+
+                state.dialog.push({
+                    id: Date.now(),
+                    role: "user",
+                    message: state.answer,
+                })
+
+                const currentQuestion = state.answer;
+                state.answer = "";
+
+                try {
+                    const res = await response(currentQuestion);
+
+                    state.dialog.push({
+                        id: Date.now() + 1,
+                        role: "system",
+                        message: res.response
+                    })
+
+                    state.context.push(res.context)
+
+                } catch (error) {
+                    state.error = "Erreur lors de la communication avec le serveur";
+                    console.error(`Erreur : ${error}`)
+                } finally {
+                    state.inLoading = false;
+                }
+            }
+
+            const toggleContextPanel = () => {
+                state.showContext = !state.showContext;
+            }
+
+            return {
+                handleSubmit,
+                toggleContextPanel,
+                isDisabled,
+                state
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
