@@ -14,15 +14,15 @@ Ce projet est un chatbot intelligent capable de répondre à des questions en ut
 
 ## 🛠️ Stack technique
 
-| Composant    | Technologie         | Description                          |
-|--------------|---------------------|--------------------------------------|
-| Frontend     | Vue.js              | Interface utilisateur moderne        |
-| Backend API  | FastAPI             | API REST avec validation automatique |
-| Embeddings   | OpenAI / LM STUDIO  | Génération d'embeddings vectoriels   |
-| Vector Store | FAISS (local)       | Base vectorielle locale              |
-| PDF Extract  |                     | Extraction de texte avec structure   |
-| AI Chat      |OpenAI GPT / Local LLM| Génération de réponses contextuelles   |
-| Langue       | Python + JavaScript |Backend robuste + Frontend typé|
+| Composant    | Technologie            | Description                          |
+|--------------|------------------------|--------------------------------------|
+| Frontend     | Svelte                 | Interface utilisateur moderne        |
+| Backend API  | FastAPI                | API REST avec validation automatique |
+| Embeddings   | OpenAI / LM STUDIO     | Génération d'embeddings vectoriels   |
+| Vector Store | ChromaDB               | Base vectorielle locale              |
+| PDF Extract  |                        | Extraction de texte avec structure   |
+| AI Chat      | OpenAI GPT / Local LLM | Génération de réponses contextuelles   |
+| Langue       | Python + JavaScript TS |Backend robuste + Frontend typé|
 
 
 ## 🧪 DEMO 
