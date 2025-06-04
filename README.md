@@ -25,25 +25,6 @@ Ce projet est un chatbot intelligent capable de répondre à des questions en ut
 | Langue       | Python + JavaScript |Backend robuste + Frontend typé|
 
 
-## 🏗️ Architecture
-
-```
-📁 Projet/
-├── 📁 assets/
-├── 📁 src/
-│   ├── 📁 api/
-│   ├── 📁 application/
-│   ├── 📁 data/
-│   ├── 📁 domain/
-│   │    ├── 📁 ports/
-│   │    └── 📁 services/
-│   ├── 📁 front/
-│   └── 📁 tools/
-├── 📄 main.log
-├── 📄 requirement.txt
-└── 📄 main.py
-```
-
 ## 🧪 DEMO 
 <img src="./assets/chat.png" alt="Chat with PDF data"/>
 <img src="./assets/document_info.png" alt="Documents data"/>
