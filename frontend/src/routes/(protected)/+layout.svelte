@@ -1,0 +1,44 @@
+<script lang="ts">
+	import { page } from "$app/state";
+	import type { LayoutProps } from './$types';
+
+
+	let { data, children }: LayoutProps = $props();
+
+
+	const getStyle = (path: string) => {
+		if (path === page.url.pathname) {
+			return "text-purple-600 text-sm font-medium"
+		}
+		return "text-slate-600 hover:text-slate-800 transition-colors duration-200 text-sm font-medium"
+	}
+
+	let navItems = [
+		{href: "/chat", label: "Chat"},
+		{href: "/stat", label: "Stat"},
+		{href: "/profil", label: "Profil"}
+	]
+
+
+</script>
+
+
+<nav class="bg-white/70 backdrop-blur-sm border-b border-slate-200/50 px-6 py-4">
+	<ul class="flex gap-4">
+		{#each navItems as item (item.href)}
+			<li
+				class={getStyle(item.href)}
+			>
+				<a
+					href={item.href}
+				>
+					{item.label}
+				</a>
+			</li>
+		{/each}
+	</ul>
+</nav>
+
+<main class="flex flex-col py-8 w-[95%] mx-auto">
+	{@render children()}
+</main>
