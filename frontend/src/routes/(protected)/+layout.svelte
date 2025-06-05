@@ -2,51 +2,73 @@
 	import { page } from "$app/state";
 	import type { LayoutProps } from './$types';
 	import { Button } from '$lib/components/ui/button';
-	import { Power } from 'lucide-svelte';
+	import { Bot } from 'lucide-svelte';
+	import ModeToggle from '$lib/components/ModeToggle.svelte';
 
 
 	let { data, children }: LayoutProps = $props();
 
-
-	const getStyle = (path: string) => {
-		if (path === page.url.pathname) {
-			return "text-purple-600 text-sm font-medium"
-		}
-		return "text-slate-600 hover:text-slate-800 transition-colors duration-200 text-sm font-medium"
-	}
-
-	let navItems = [
-		{href: "/chat", label: "Chat"},
-		{href: "/stat", label: "Stat"},
-		{href: "/profil", label: "Profil"},
-	]
-
-
 </script>
 
 
-<header class="bg-white/70 backdrop-blur-sm border-b border-slate-200/50 px-6 py-4">
-	<ul class="flex gap-4 items-center">
-		{#each navItems as item (item.href)}
-			<li
-				class={getStyle(item.href)}
-			>
-				<Button variant="link" href={item.href}>
-					{item.label}
-				</Button>
-			</li>
-		{/each}
-		<li>
-			<form action="/logout" method="POST">
-				<Button variant="ghost" type="submit">
-					<Power class="h-4" />
-					<span>Déconnexion</span>
-				</Button>
-			</form>
-		</li>
-	</ul>
+<header  class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+	<div class="container mx-auto px-4 py-4">
+		<nav class="flex items-center justify-between">
+			<div class="flex items-center gap-2">
+				<div class="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
+					<Bot class="h-5 w-5 text-primary-foreground" />
+				</div>
+				<span class="text-xl font-bold">ChatPDF</span>
+			</div>
+			<div class="flex items-center gap-4">
+				<nav>
+					<ul class="flex gap-1 items-center">
+						<li>
+							<Button variant="link" href="/">
+								Home
+							</Button>
+						</li>
+						{#if data.user}
+							<li>
+								<Button variant="link" href="/chat">
+									Chat
+								</Button>
+							</li>
+							<li>
+								<Button variant="link" href="/stat">
+									Stat
+								</Button>
+							</li>
+							<li>
+								<Button variant="link" href="/profil">
+									Profil
+								</Button>
+							</li>
+							<li>
+								<form action="/logout" method="POST">
+									<Button variant="ghost" type="submit">Déconnexion</Button>
+								</form>
+							</li>
+						{:else}
+							<li>
+								<Button variant="link" href="/login">
+									Se connecter
+								</Button>
+							</li>
+							<li>
+								<Button variant="link" href="/register">
+									S'inscrire
+								</Button>
+							</li>
+						{/if}
+						<li>
+							<ModeToggle />
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</nav>
+	</div>
 </header>
 
-<main class="flex flex-col py-8 w-[95%] mx-auto">
-	{@render children()}
-</main>
+{@render children()}

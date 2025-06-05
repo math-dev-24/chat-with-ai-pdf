@@ -14,6 +14,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
 	default: async (event) => {
 		const formData = await event.request.formData();
+		console.log(formData);
 		const username = formData.get('username');
 		const password = formData.get('password');
 
