@@ -1,40 +1,55 @@
 <script lang="ts">
 	import type {PageProps} from './$types';
+	import * as Card from "$lib/components/ui/card";
+	import * as Alert from "$lib/components/ui/alert";
+	import { Input } from "$lib/components/ui/input/index.js";
+	import { Label } from "$lib/components/ui/label/index.js";
+	import { Button } from '$lib/components/ui/button';
+	import { UserPlus } from 'lucide-svelte';
 
 	let { form }: PageProps = $props();
 </script>
 
-
-<section
-	class="container mx-auto px-4 py-8 max-w-md rounded border border-slate-200 shadow-sm"
-	id="login"
->
-	<form
-		class="flex flex-col gap-2"
-		method="POST"
-	>
-		<h1>S'inscrire :</h1>
-		<div class="form-group">
-			<label for="username">Username</label>
-			<input id="username" name="username" required type="text">
-		</div>
-		<div class="form-group">
-			<label for="password">Password</label>
-			<input id="password" name="password" required type="password">
-		</div>
-		<button
-			class="btn btn-primary w-full"
+<Card.Root class="max-w-2xl mx-auto my-6">
+	<Card.Header>
+		<Card.Title>
+			S'inscrire :
+		</Card.Title>
+	</Card.Header>
+	<Card.Content>
+		<form
+			class="flex flex-col gap-2"
+			method="POST"
 		>
-			S'enregistrer
-		</button>
-	</form>
+				<Label for="username">Username</Label>
+				<Input id="username" name="username" required type="text" />
 
-	<p>
-		Vous avez déjà un compte ?
-		<a class="text-blue-600 hover:text-blue-800 transition-colors" href="/login">se connecter !</a>
-	</p>
+				<Label for="password">Password</Label>
+				<Input id="password" name="password" required type="password" />
 
-	{#if form?.message}
-		<div class={`callout callout-${form.type}`}>{form.message}</div>
-	{/if}
-</section>
+			<Button
+				class="gap-2"
+				type="submit"
+			>
+				<UserPlus />
+				<span>S'enregistrer</span>
+			</Button>
+		</form>
+	</Card.Content>
+	<Card.Footer class="flex flex-col items-start">
+		<p>
+			Vous avez déjà un compte ?
+			<a class="text-blue-600 hover:text-blue-800 transition-colors" href="/login">se connecter !</a>
+		</p>
+		{#if form?.message}
+			<Alert.Root variant="destructive" class="my-2">
+				<Alert.Title>
+					Erreur !
+				</Alert.Title>
+				<Alert.Description>
+					{form.message}
+				</Alert.Description>
+			</Alert.Root>
+		{/if}
+	</Card.Footer>
+</Card.Root>

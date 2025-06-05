@@ -64,14 +64,15 @@ export const actions: Actions = {
 		}
 
 		await ConversationService.deleteConversation(event.locals.user.id, convId as string);
+
 		const list = await ConversationService.getUserConversation(event.locals.user.id);
 
 		FlashService.success(event, 'Converssation supprimé !');
 
 		if (list.length > 0) {
-			redirect(302, `/chat/${list[0].id}`);
+			return redirect(302, `/chat/${list[0].id}`);
 		}
-		redirect(302, '/chat/new');
+		return redirect(302, '/chat/new');
 	},
 
 	postMessage: async (event) => {

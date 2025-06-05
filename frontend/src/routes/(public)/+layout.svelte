@@ -1,19 +1,52 @@
 <script lang="ts">
+	import { ModeWatcher } from "mode-watcher";
+	import ModeToggle from '$lib/components/ModeToggle.svelte';
+	import { Button } from '$lib/components/ui/button';
+
 	let { data, children } = $props();
 </script>
 
+<ModeWatcher />
 
-<header class="py-2 px-6">
+<header class="bg-white/70 backdrop-blur-sm border-b border-slate-200/50 px-6 py-4">
 	<nav>
-		<ul class="flex gap-4">
-			<li><a href="/">Home</a></li>
+		<ul class="flex gap-1 items-center">
+			<li>
+				<Button variant="link" href="/">
+					Home
+				</Button>
+			</li>
 			{#if data.user}
-				<li><a href="/chat">Chat</a></li>
-				<li><a href="/profil">Profil</a></li>
+				<li>
+					<Button variant="link" href="/chat">
+						Chat
+					</Button>
+				</li>
+				<li>
+					<Button variant="link" href="/profil">
+						Profil
+					</Button>
+				</li>
+				<li>
+					<form action="?/logout" method="POST">
+						<Button variant="ghost">Déconnexion</Button>
+					</form>
+				</li>
 			{:else}
-				<li><a href="/login">Login</a></li>
-				<li><a href="/register">Register</a></li>
+				<li>
+					<Button variant="link" href="/login">
+						Se connecter
+					</Button>
+				</li>
+				<li>
+					<Button variant="link" href="/register">
+						S'inscrire
+					</Button>
+				</li>
 			{/if}
+			<li>
+				<ModeToggle />
+			</li>
 		</ul>
 	</nav>
 </header>

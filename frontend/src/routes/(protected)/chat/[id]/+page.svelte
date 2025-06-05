@@ -1,16 +1,19 @@
 <script lang="ts">
 	import MainChat from '$lib/components/chat/main-chat.svelte';
 	import InputChat from '$lib/components/chat/input-chat.svelte';
-	import ListConversation from '$lib/components/chat/conversation/list.svelte'
+	import CardConv from '$lib/components/chat/conversation/card.svelte';
+	import * as Card from "$lib/components/ui/card/index.js";
+
 
 	import type { StateChat } from '$lib/types';
+	import { Button } from '$lib/components/ui/button';
+	import { User } from 'lucide-svelte';
 	let { data } = $props();
 
 	let stateChat = $state<StateChat>({
 		answer: "",
 		inLoading: false,
 		context: [],
-		dialog: data.actual_conversation.messages,
 		errors: [],
 		showContext: false
 	});
@@ -19,27 +22,38 @@
 		stateChat.showContext = !stateChat.showContext;
 	}
 
-	$effect(() => {
-		stateChat.dialog = data.actual_conversation.messages;
-	});
 
 </script>
 
 <svelte:head>
 	<title>Chat : { data.actual_conversation.name}</title>
 </svelte:head>
-<section class="grid grid-cols-6 gap-4 h-[88vh]">
-	<aside class="card py-2 px-4">
-		<ul>
-			<li>Mes conversations :</li>
-			<ListConversation
-				list={data.list_conversations}
-			/>
-		</ul>
-	</aside>
-	<div class="col-span-5 flex-1 flex flex-col">
+
+<section class="grid grid-cols-6 gap-4 h-[85vh]">
+
+	<Card.Root class="flex flex-col">
+		<Card.Header>
+			<Card.Title>Mes conversations :</Card.Title>
+		</Card.Header>
+		<Card.Content class="flex-1">
+			<ul>
+				{#each data.list_conversations as conversation (conversation.id)}
+					<CardConv conversation={conversation} />
+				{/each}
+			</ul>
+		</Card.Content>
+		<Card.Footer>
+			<Button class="gap-2" variant="outline" href="/profil">
+				<User />
+				<span>{data.user ? data.user.username : "inconnu"}</span>
+			</Button>
+		</Card.Footer>
+	</Card.Root>
+
+	<section class="col-span-5">
 		<MainChat
-			dialog={stateChat.dialog}
+			name={data.actual_conversation.name}
+			messages={data.actual_conversation.messages}
 			inLoading={stateChat.inLoading}
 		/>
 
@@ -50,5 +64,5 @@
 			showContext={stateChat.showContext}
 			onToggleContext={toggleContext}
 		/>
-	</div>
+	</section>
 </section>

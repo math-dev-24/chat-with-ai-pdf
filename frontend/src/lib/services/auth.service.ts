@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { hash, verify } from "@node-rs/argon2";
 import { nanoid } from "nanoid";
 import type { AuthResult } from "$lib/types";
+import type { User } from '$lib/server/db/schema';
 
 export class AuthService {
 
@@ -33,7 +34,7 @@ export class AuthService {
 
 		try {
 
-			const existingUser = await this.getUser(username);
+			const existingUser = await this.getUserByUsername(username);
 
 			if (!existingUser) {
 				return {
@@ -73,9 +74,9 @@ export class AuthService {
 		}
 	}
 
-	static async updateProfile(username: string, password: string, new_password: string): Promise<AuthResult<typeof table.user.$inferSelect>> {
+	static async updatePassword(userId: string, password: string, new_password: string): Promise<AuthResult<typeof table.user.$inferSelect>> {
 		try {
-			const existingUser = await this.getUser(username);
+			const existingUser = await this.getUserById(userId);
 			if (!existingUser) {
 				return {
 					success: false,
@@ -86,9 +87,7 @@ export class AuthService {
 				};
 			}
 
-			// check password actuel OK
 			const isValidPassword = await this.checkPassword(password, existingUser.password);
-
 
 			if (!isValidPassword) {
 				return {
@@ -114,7 +113,7 @@ export class AuthService {
 
 			const newPasswordHash = await this.hashPassword(new_password);
 
-			const updatedUser = await db.update(table.user).set({ password: newPasswordHash }).where(eq(table.user.username, username)).returning();
+			const updatedUser = await db.update(table.user).set({ password: newPasswordHash }).where(eq(table.user.id, userId)).returning();
 
 			if (!updatedUser) {
 				return {
@@ -141,6 +140,48 @@ export class AuthService {
 		}
 	}
 
+
+	static async updateUserName(userId: string, newUsername: string): Promise<AuthResult<User>> {
+			const user = await this.getUserById(userId);
+
+			if(!user) {
+				return {
+					success: false,
+					error: {
+						code: "SERVER_ERROR",
+						message: 'Invalid username or password'
+					}
+				}
+			}
+
+			if(user.username === newUsername) {
+				return {
+					success: false,
+					...user
+				};
+			}
+
+			const existingUser = await this.getUserByUsername(newUsername);
+
+			if (existingUser) {
+				return {
+					success: false,
+					error: {
+						code: "SERVER_ERROR",
+						message: 'Incorrect username or password'
+					}
+				}
+			}
+
+			const updatedUser = await db.update(table.user).set({ username: newUsername })
+				.where(eq(table.user.id, userId)).returning();
+
+			return {
+				success: true,
+				...updatedUser
+			}
+	}
+
 	static async register(username: string, password: string): Promise<AuthResult<string>> {
 		if (!this.validateUsername(username)) {
 			return {
@@ -163,7 +204,7 @@ export class AuthService {
 		}
 
 		try {
-			const existingUser = await this.getUser(username);
+			const existingUser = await this.getUserByUsername(username);
 			if (existingUser) {
 				return {
 					success: false,
@@ -201,7 +242,17 @@ export class AuthService {
 		}
 	}
 
-	static async getUser(username: string): Promise<typeof table.user.$inferSelect | null> {
+	static async getUserById(userId: string): Promise<User | null> {
+		try {
+			const results = await db.select().from(table.user).where(eq(table.user.id, userId));
+			return results.at(0) || null;
+		} catch (error) {
+			console.error('Get user error:', error);
+			return null;
+		}
+	}
+
+	static async getUserByUsername(username: string): Promise<User | null> {
 		try {
 			const results = await db.select().from(table.user).where(eq(table.user.username, username));
 			return results.at(0) || null;

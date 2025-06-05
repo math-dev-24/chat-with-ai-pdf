@@ -8,7 +8,6 @@ export type StateChat = {
 	answer: string;
 	inLoading: boolean;
 	context: string[],
-	dialog: ChatMessage[],
 	errors: string[],
 	showContext: boolean
 }
