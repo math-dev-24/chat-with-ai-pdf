@@ -8,6 +8,8 @@
 
 	let { action } = $props();
 
+	let isLoading = $state<boolean>(false)
+
 </script>
 
 <Card.Root>
@@ -20,7 +22,13 @@
 		<form
 			method="POST"
 			{action}
-			use:enhance
+			use:enhance={() => {
+				isLoading = true
+				return async ({update}) => {
+					await update();
+					isLoading = false
+				}
+			}}
 			class="space-y-4"
 		>
 			<div>

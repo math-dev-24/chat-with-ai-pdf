@@ -28,6 +28,8 @@ export const actions: Actions = {
 		const formData = await event.request.formData();
 		const username = formData.get('username');
 
+		console.log(username, formData);
+
 		if (!username || typeof username !== 'string' || username.trim().length === 0) {
 			return fail(400, {
 				status: 'error',
@@ -39,22 +41,31 @@ export const actions: Actions = {
 			const res = await AuthService.updateUserName(event.locals.user.id, username.trim());
 
 			if (!res.success) {
-				throw Error(res.error?.message)
+				return fail(400, {
+					status: 'error',
+					message: res.error?.message || "Erreur lors de la mise à jour du nom"
+				});
 			}
 
-			event.locals.user.username = username.trim();
-			FlashService.success(event, "Username modifié avec succès !");
+			event.locals.user.username = res.data?.username || username.trim();
 
+			FlashService.success(event, "Nom d'utilisateur modifié avec succès !");
 
-			return redirect(302, '/profil');
+			return {
+				success: true,
+				status: 'success',
+				message: "Mise à jour avec success !"
+			};
 
 		} catch (error) {
+			console.error('Erreur updateName:', error);
 			return fail(400, {
 				status: 'error',
 				message: "Une erreur est survenue lors de la mise à jour"
 			});
 		}
 	},
+
 	updatePassword: async (event) => {
 		if(!event.locals.user) {
 			return redirect(302, '/login');
@@ -65,18 +76,57 @@ export const actions: Actions = {
 		const newPassword = formData.get('newPassword');
 		const newPasswordCheck = formData.get('newPasswordCheck');
 
-		if (typeof newPassword !== 'string' || typeof password !== 'string' || typeof newPasswordCheck !== 'string' || newPassword !== newPasswordCheck) {
-			return fail(400, {message: 'Le nouveau password doit être identique'});
+		if (typeof newPassword !== 'string' || typeof password !== 'string' || typeof newPasswordCheck !== 'string') {
+			return fail(400, {
+				status: 'error',
+				message: 'Tous les champs sont requis'
+			});
+		}
+
+		if (password.trim().length === 0 || newPassword.trim().length === 0) {
+			return fail(400, {
+				status: 'error',
+				message: 'Les mots de passe ne peuvent pas être vides'
+			});
+		}
+
+		if (newPassword !== newPasswordCheck) {
+			return fail(400, {
+				status: 'error',
+				message: 'Les nouveaux mots de passe ne correspondent pas'
+			});
+		}
+
+		if (newPassword.length < 6) {
+			return fail(400, {
+				status: 'error',
+				message: 'Le nouveau mot de passe doit contenir au moins 6 caractères'
+			});
 		}
 
 		try {
-			const res = await AuthService.updatePassword(event.locals.user.id, password, newPasswordCheck);
-			if (!res.success) {
-				throw Error(res.error?.message)
-			}
-		} catch {
-			return fail(400)
-		}
+			const res = await AuthService.updatePassword(event.locals.user.id, password, newPassword);
 
+			if (!res.success) {
+				return fail(400, {
+					status: 'error',
+					message: res.error?.message || "Mot de passe actuel incorrect"
+				});
+			}
+
+			FlashService.success(event, "Mot de passe modifié avec succès !");
+
+			return {
+				success: true,
+				status: 'success'
+			};
+
+		} catch (error) {
+			console.error('Erreur updatePassword:', error);
+			return fail(400, {
+				status: 'error',
+				message: "Une erreur est survenue lors de la mise à jour du mot de passe"
+			});
+		}
 	}
 }

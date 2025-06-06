@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from "$app/state";
+	import { page } from '$app/state';
 	import type { Conversation } from '$lib/server/db/schema';
 
-	// Composants shadcn-svelte
-	import { Button } from "$lib/components/ui/button";
-	import { Input } from "$lib/components/ui/input";
-	import { Check, X, Edit2, Trash2 } from "lucide-svelte";
-	import { cn } from "$lib/utils";
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Check, Edit2, Trash2, X } from 'lucide-svelte';
+	import { cn } from '$lib/utils';
 
 	type Props = {
 		conversation: Conversation;
@@ -25,11 +24,6 @@
 		name = conversation.name;
 	};
 
-	function handleEnhance() {
-		return async () => {
-			isEditing = false;
-		};
-	}
 
 	const handleKeydown = (e: KeyboardEvent) => {
 		if (e.key === 'Escape') {
@@ -43,7 +37,13 @@
 		<form
 			method="POST"
 			action={`/chat/${conversation.id}?/updateNameConversation`}
-			use:enhance={handleEnhance}
+			use:enhance={() => {
+				isEditing = true;
+				return async ({update}) => {
+					await update();
+					isEditing = false;
+				};
+			}}
 			class="flex gap-2 items-center flex-1"
 		>
 			<input
@@ -57,8 +57,6 @@
 				onkeydown={handleKeydown}
 				autofocus
 				required
-				minlength="1"
-				maxlength="100"
 				class="flex-1"
 				placeholder="Nom de la conversation"
 			/>
@@ -109,9 +107,16 @@
 			<form
 				method="POST"
 				action={`/chat/${conversation.id}?/deleteConversation`}
-				use:enhance
+				use:enhance={() => {
+					isEditing = true;
+					return async ({update}) => {
+						await update();
+						isEditing = false;
+					};
+				}}
 				class="contents"
 			>
+				<Input type="hidden" value={page.params.id} name="from" id="from" />
 				<Button
 					type="submit"
 					size="sm"

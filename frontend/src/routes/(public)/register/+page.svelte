@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
+	import {enhance} from "$app/forms";
 
-	// Composants shadcn-svelte
 	import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "$lib/components/ui/card";
 	import { Alert, AlertDescription, AlertTitle } from "$lib/components/ui/alert";
 	import { Input } from "$lib/components/ui/input";
@@ -16,7 +16,6 @@
 		Lock,
 		UserPlus,
 		AlertCircle,
-		Bot,
 		ArrowLeft,
 		Eye,
 		EyeOff,
@@ -27,19 +26,15 @@
 
 	let { form }: PageProps = $props();
 
-	// États pour afficher/masquer les mots de passe
 	let showPassword = $state(false);
 	let showConfirmPassword = $state(false);
 
-	// État de loading pour le formulaire
 	let isLoading = $state(false);
 
-	// Valeurs des champs pour validation en temps réel
 	let username = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
 
-	// Validation en temps réel
 	let usernameValid = $derived(username.length >= 3);
 	let passwordValid = $derived(password.length >= 6);
 	let passwordsMatch = $derived(password && confirmPassword && password === confirmPassword);
@@ -63,11 +58,12 @@
 		showConfirmPassword = !showConfirmPassword;
 	}
 
-	function handleSubmit() {
-		isLoading = true;
-		// Le loading sera réinitialisé par la navigation ou l'erreur
-	}
 </script>
+
+
+<svelte:head>
+	<title>'S'inscrire !</title>
+</svelte:head>
 
 <div class="flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4 mt-6">
 	<div class="w-full max-w-md space-y-6">
@@ -87,7 +83,13 @@
 				<form
 					class="space-y-4"
 					method="POST"
-					onsubmit={handleSubmit}
+					use:enhance={() => {
+						isLoading = true
+						return async({update}) => {
+							await update();
+							isLoading = false
+						}
+					}}
 				>
 					<!-- Champ Username -->
 					<div class="space-y-2">

@@ -8,6 +8,8 @@
 
 	let { action, currentUsername } = $props();
 
+	let isLoading = $state(false);
+
 </script>
 
 <Card.Root>
@@ -20,14 +22,20 @@
 		<form
 			method="POST"
 			{action}
-			use:enhance
+			use:enhance={() => {
+				isLoading = true
+				return async ({update}) => {
+					await update();
+					isLoading = false
+				}
+			}}
 			class="space-y-4"
 		>
 			<div>
 				<Label for="username">Username :</Label>
 				<Input type="text" value={currentUsername} name="username" id="username" />
 			</div>
-			<Button class="gap-1" type="submit">
+			<Button class="gap-1" type="submit" disabled={isLoading}>
 				<Pencil />
 				Modifier
 			</Button>

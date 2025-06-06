@@ -3,6 +3,7 @@ import { ApiService, ConversationService, FlashService } from '$lib/services';
 import { type Actions, fail, redirect } from '@sveltejs/kit';
 import type { ConversationWithMessages } from '$lib/types';
 import type { Conversation } from '$lib/server/db/schema';
+import { page } from '$app/state';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -57,6 +58,8 @@ export const actions: Actions = {
 			throw redirect(302, '/login');
 		}
 
+		const formData = await event.request.formData();
+		const fromId = formData.get('from');
 		const convId = event.params.id;
 
 		if (!convId) {
@@ -65,9 +68,15 @@ export const actions: Actions = {
 
 		await ConversationService.deleteConversation(event.locals.user.id, convId as string);
 
-		const list = await ConversationService.getUserConversation(event.locals.user.id);
-
 		FlashService.success(event, 'Converssation supprimé !');
+
+		if (fromId != convId) {
+			return {
+				success: true
+			}
+		}
+
+		const list = await ConversationService.getUserConversation(event.locals.user.id);
 
 		if (list.length > 0) {
 			return redirect(302, `/chat/${list[0].id}`);

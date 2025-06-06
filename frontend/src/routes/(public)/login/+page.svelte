@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
+	import { enhance } from '$app/forms';
 
 	import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "$lib/components/ui/card";
 	import { Alert, AlertDescription, AlertTitle } from "$lib/components/ui/alert";
@@ -13,13 +14,12 @@
 		Lock,
 		LogIn,
 		AlertCircle,
-		Bot,
 		ArrowRight,
 		Eye,
 		EyeOff
 	} from 'lucide-svelte';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	let showPassword = $state(false);
 
@@ -29,10 +29,11 @@
 		showPassword = !showPassword;
 	}
 
-	function handleSubmit() {
-		isLoading = true;
-	}
 </script>
+
+<svelte:head>
+	<title>Se connecter !</title>
+</svelte:head>
 
 <div class="flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4 mt-6">
 	<div class="w-full max-w-md space-y-6">
@@ -52,8 +53,17 @@
 				<form
 					class="space-y-4"
 					method="POST"
-					onsubmit={handleSubmit}
+					use:enhance={() => {
+						isLoading = true
+						return async({update}) => {
+							await update();
+							isLoading = false
+						}
+					}}
 				>
+					<!-- Pour redirect si besoin -->
+					<Input type="hidden" value={data.from} name="from" id="from" />
+
 					<!-- Champ Username -->
 					<div class="space-y-2">
 						<Label for="username" class="text-sm font-medium">

@@ -13,7 +13,9 @@
 				<div class="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
 					<Bot class="h-5 w-5 text-primary-foreground" />
 				</div>
-				<span class="text-xl font-bold">ChatPDF</span>
+					<Button href="/" variant="link" class="text-xl font-bold">
+						ChatPDF
+					</Button>
 			</div>
 			<div class="flex items-center gap-4">
 				<nav>
@@ -25,7 +27,7 @@
 								</Button>
 							</li>
 							<li>
-								<form action="?/logout" method="POST">
+								<form action="/logout" method="POST">
 									<Button variant="destructive" size="sm" type="submit">
 										<Power class="h-5" />
 									</Button>
