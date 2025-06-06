@@ -5,7 +5,7 @@
 
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Check, Edit2, Trash2, X } from 'lucide-svelte';
+	import { Check, Pencil, Trash2, X } from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 
 	type Props = {
@@ -102,7 +102,7 @@
 				class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
 				aria-label="Éditer"
 			>
-				<Edit2 class="h-4 w-4" />
+				<Pencil class="h-4 w-4" />
 			</Button>
 			<form
 				method="POST"

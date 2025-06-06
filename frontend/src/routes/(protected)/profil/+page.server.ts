@@ -43,7 +43,7 @@ export const actions: Actions = {
 			if (!res.success) {
 				return fail(400, {
 					status: 'error',
-					message: res.error?.message || "Erreur lors de la mise à jour du nom"
+					message: res.error || "Erreur lors de la mise à jour du nom"
 				});
 			}
 
@@ -110,7 +110,7 @@ export const actions: Actions = {
 			if (!res.success) {
 				return fail(400, {
 					status: 'error',
-					message: res.error?.message || "Mot de passe actuel incorrect"
+					message: res.error || "Mot de passe actuel incorrect"
 				});
 			}
 

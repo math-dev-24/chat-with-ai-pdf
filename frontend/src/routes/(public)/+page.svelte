@@ -3,9 +3,7 @@
 	import { Button } from "$lib/components/ui/button";
 	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card";
 	import { Badge } from "$lib/components/ui/badge";
-	import { Separator } from "$lib/components/ui/separator";
 
-	// Icônes Lucide
 	import {
 		MessageCircle,
 		FileText,
@@ -13,22 +11,18 @@
 		Search,
 		Zap,
 		Brain,
-		ArrowRight,
 		Sparkles,
 		Database,
 		Bot
 	} from "lucide-svelte";
 
-	// Animation d'apparition progressive
 	let mounted = $state(false);
 
-	// Simule le montage du composant
 	import { onMount } from 'svelte';
 	onMount(() => {
 		mounted = true;
 	});
 
-	// Fonctionnalités principales
 	const features = [
 		{
 			icon: Upload,
@@ -47,7 +41,6 @@
 		}
 	];
 
-	// Statistiques fictives
 	const stats = [
 		{ label: "Documents traités", value: "1,247", icon: FileText },
 		{ label: "Questions répondues", value: "8,932", icon: MessageCircle },
@@ -57,7 +50,6 @@
 
 <div class="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
 
-	<!-- Hero Section -->
 	<section class="container mx-auto px-4 py-16 text-center">
 		<div class={`transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
 			<Badge variant="secondary" class="mb-4">
@@ -87,7 +79,6 @@
 		</div>
 	</section>
 
-	<!-- Features Section -->
 	<section class="container mx-auto px-4 py-16">
 		<div class="text-center mb-12">
 			<h2 class="text-3xl font-bold mb-4">Fonctionnalités principales</h2>
@@ -116,7 +107,6 @@
 		</div>
 	</section>
 
-	<!-- Stats Section -->
 	<section class="bg-muted/50 py-16">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-12">
@@ -138,7 +128,6 @@
 		</div>
 	</section>
 
-	<!-- CTA Section -->
 	<section class="container mx-auto px-4 py-16">
 		<Card class="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-primary/20">
 			<CardContent class="text-center p-12">
@@ -155,7 +144,6 @@
 		</Card>
 	</section>
 
-	<!-- Footer -->
 	<footer class="border-t bg-background/95 backdrop-blur">
 		<div class="container mx-auto px-4 py-8">
 			<div class="flex flex-col md:flex-row items-center justify-between">

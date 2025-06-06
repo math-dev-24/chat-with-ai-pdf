@@ -51,7 +51,7 @@
   };
 </script>
 
-<Card class="w-full max-w-2xl mx-auto">
+<Card class="w-full max-w-2xl mx-auto mt-6">
   <CardHeader>
     <CardTitle>Upload de documents PDF</CardTitle>
     <CardDescription>

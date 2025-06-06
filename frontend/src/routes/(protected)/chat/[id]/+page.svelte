@@ -2,6 +2,7 @@
 	import MainChat from '$lib/components/chat/main-chat.svelte';
 	import InputChat from '$lib/components/chat/input-chat.svelte';
 	import CardConv from '$lib/components/chat/conversation/card.svelte';
+	import NewConversation from '$lib/components/chat/new-conversation.svelte';
 
 	// Composants shadcn-svelte
 	import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "$lib/components/ui/card";
@@ -23,8 +24,20 @@
 
 	import type { StateChat } from '$lib/types';
 	import { cn } from '$lib/utils';
+	import { goto } from '$app/navigation';
 
 	let { data } = $props();
+
+	let isLoading = $state(true);
+
+	$effect(() => {
+		if (data) {
+			isLoading = false;
+			if (!data.isNew && !data.actual_conversation) {
+				goto('/chat/new');
+			}
+		}
+	});
 
 	let stateChat = $state<StateChat>({
 		answer: "",
@@ -34,7 +47,6 @@
 		showContext: false
 	});
 
-	// État pour la sidebar mobile
 	let sidebarOpen = $state(false);
 
 	function toggleContext() {
@@ -51,18 +63,21 @@
 </script>
 
 <svelte:head>
-	<title>Chat : {data.actual_conversation.name}</title>
+	<title>Chat : {data?.actual_conversation?.name || 'Nouvelle conversation'}</title>
 </svelte:head>
 
 <div class="flex h-screen bg-background">
 	<!-- Overlay mobile -->
 	{#if sidebarOpen}
-		<div
+		<Button
 			class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+			variant="ghost"
 			onclick={closeSidebar}
+			onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && closeSidebar()}
 			role="button"
-			tabindex="0"
-		></div>
+		>
+			<X class="h-4 w-4" />
+		</Button>
 	{/if}
 
 	<!-- Sidebar conversations -->
@@ -104,7 +119,7 @@
 			<CardContent class="flex-1 px-4 pb-4">
 				<ScrollArea class="h-[calc(100vh-280px)]">
 					<ul class="space-y-1">
-						{#each data.list_conversations as conversation (conversation.id)}
+						{#each data?.list_conversations || [] as conversation (conversation.id)}
 							<CardConv {conversation} />
 						{/each}
 					</ul>
@@ -123,10 +138,10 @@
 						</div>
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium truncate">
-								{data.user?.username || "Utilisateur"}
+								{data?.user?.username || "Utilisateur"}
 							</p>
 							<p class="text-xs text-muted-foreground">
-								{data.list_conversations.length} conversation{data.list_conversations.length !== 1 ? 's' : ''}
+								{data?.list_conversations?.length || 0} conversation{(data?.list_conversations?.length || 0) !== 1 ? 's' : ''}
 							</p>
 						</div>
 					</div>
@@ -173,29 +188,39 @@
 
 			<div class="flex items-center gap-2">
 				<Badge variant="secondary" class="text-xs">
-					{data.actual_conversation.name}
+					{data?.actual_conversation?.name || 'Nouvelle conversation'}
 				</Badge>
 			</div>
 		</header>
 
 		<!-- Zone de chat -->
 		<div class="flex-1 flex flex-col overflow-hidden p-4 gap-3">
-			<div class="flex-1 min-h-0">
-				<MainChat
-					name={data.actual_conversation.name}
-					messages={data.actual_conversation.messages}
-					inLoading={stateChat.inLoading}
-				/>
-			</div>
-			<div class="flex-shrink-0">
-				<InputChat
-					answer={stateChat.answer}
-					inLoading={stateChat.inLoading}
-					error={stateChat.errors[0] || ''}
-					showContext={stateChat.showContext}
-					onToggleContext={toggleContext}
-				/>
-			</div>
+			{#if isLoading}
+				<div class="flex-1 flex items-center justify-center">
+					<div class="animate-pulse">Chargement...</div>
+				</div>
+			{:else if data?.isNew}
+				<div class="flex-1 flex items-center justify-center">
+					<NewConversation />
+				</div>
+			{:else}
+				<div class="flex-1 min-h-0">
+					<MainChat
+						name={data?.actual_conversation?.name || 'Nouvelle conversation'}
+						messages={data?.actual_conversation?.messages || []}
+						inLoading={stateChat.inLoading}
+					/>
+				</div>
+				<div class="flex-shrink-0">
+					<InputChat
+						answer={stateChat.answer}
+						inLoading={stateChat.inLoading}
+						error={stateChat.errors[0] || ''}
+						showContext={stateChat.showContext}
+						onToggleContext={toggleContext}
+					/>
+				</div>
+			{/if}
 		</div>
 	</main>
 </div>

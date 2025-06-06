@@ -9,7 +9,7 @@ export type ConversationWithMessages = Conversation & {
 export type AskResponse = {
 	question: string;
 	response: string;
-	contexts: string,
+	context: string;
 	context_length: number,
 	sources_count: number,
 	processing_time: null | number,

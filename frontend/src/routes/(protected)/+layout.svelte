@@ -1,12 +1,41 @@
 <script lang="ts">
-	import { page } from "$app/state";
 	import type { LayoutProps } from './$types';
 	import { Button } from '$lib/components/ui/button';
-	import { Bot } from 'lucide-svelte';
+	import { Bot, LogOut } from 'lucide-svelte';
 	import ModeToggle from '$lib/components/ModeToggle.svelte';
+	import { page } from '$app/state';
 
+	let { children }: LayoutProps = $props();
 
-	let { data, children }: LayoutProps = $props();
+	const isCurrentPath = (href: string) => page.url.pathname === href
+
+	const listMenu: {label: string, href: string, isCurrentPath: boolean}[] = [
+		{
+			label: 'Home',
+			href: '/',
+			isCurrentPath: isCurrentPath('/')
+		},
+		{
+			label: 'Chat',
+			href: '/chat',
+			isCurrentPath: isCurrentPath('/chat')
+		},
+		{
+			label: 'Stat',
+			href: '/stat',
+			isCurrentPath: isCurrentPath('/stat')
+		},
+		{
+			label: 'Upload PDF',
+			href: '/pdf/form',
+			isCurrentPath: isCurrentPath('/pdf/form')
+		},
+		{
+			label: 'Profil',
+			href: '/profil',
+			isCurrentPath: isCurrentPath('/profil')
+		}		
+	]
 
 </script>
 
@@ -23,49 +52,25 @@
 			<div class="flex items-center gap-4">
 				<nav>
 					<ul class="flex gap-1 items-center">
+						{#each listMenu as menu (menu.href)}
 						<li>
-							<Button variant="link" href="/">
-								Home
+							<Button 
+								variant="link" 
+								href={menu.href} 
+								class={menu.isCurrentPath ? 'text-primary' : 'text-muted-foreground'}
+							>
+								{menu.label}
 							</Button>
 						</li>
-						{#if data.user}
-							<li>
-								<Button variant="link" href="/chat">
-									Chat
-								</Button>
-							</li>
-							<li>
-								<Button variant="link" href="/stat">
-									Stat
-								</Button>
-							</li>
-							<li>
-								<Button variant="link" href="/pdf/form">
-									Upload PDF
-								</Button>
-							</li>
-							<li>
-								<Button variant="link" href="/profil">
-									Profil
-								</Button>
-							</li>
+						{/each}
 							<li>
 								<form action="/logout" method="POST">
-									<Button variant="ghost" type="submit">Déconnexion</Button>
+									<Button variant="ghost" type="submit">
+										<LogOut class="h-4 w-4" />
+									</Button>
 								</form>
 							</li>
-						{:else}
-							<li>
-								<Button variant="link" href="/login">
-									Se connecter
-								</Button>
-							</li>
-							<li>
-								<Button variant="link" href="/register">
-									S'inscrire
-								</Button>
-							</li>
-						{/if}
+
 						<li>
 							<ModeToggle />
 						</li>
