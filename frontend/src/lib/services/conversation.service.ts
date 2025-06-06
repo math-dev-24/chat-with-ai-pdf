@@ -1,9 +1,9 @@
-import type { ChatMessage, ConversationWithMessages } from '$lib/types';
+import type { ConversationWithMessages } from '$lib/types';
 import { nanoid } from 'nanoid';
 import { db } from '$lib/server/db';
 import * as table from "$lib/server/db/schema";
 import {eq} from "drizzle-orm";
-import { conversation, type Conversation, type Message, message } from '$lib/server/db/schema';
+import { conversation, type Conversation, type Message, message, context, type Context } from '$lib/server/db/schema';
 
 
 
@@ -42,9 +42,13 @@ export class ConversationService {
 		const messages = await db.select().from(table.message)
 			.where(eq(message.conversationId, tmpConversation.id))
 
+		const contexts = await db.select().from(table.context)
+			.where(eq(context.conversationId, tmpConversation.id))
+
 		return {
 			...tmpConversation,
 			messages: messages,
+			contexts: contexts
 		}
 	}
 
@@ -119,5 +123,27 @@ export class ConversationService {
 		await db.delete(table.message).where(eq(message.conversationId, convId))
 		await db.delete(table.conversation).where(eq(conversation.id, convId))
 
+	}
+
+	static async addContext(conversationId: string, content: string): Promise<Context> {
+		const newContext = {
+			id: nanoid(),
+			conversationId,
+			content,
+			createdAt: new Date()
+		}
+
+		const addedContext = (await db.insert(table.context).values(newContext).returning()).at(0);
+
+		if(!addedContext){
+			throw Error('Error adding context');
+		}
+
+		return addedContext;
+	}
+
+	static async getContexts(conversationId: string): Promise<Context[]> {
+		return db.select().from(table.context)
+			.where(eq(context.conversationId, conversationId))
 	}
 }

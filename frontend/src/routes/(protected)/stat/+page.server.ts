@@ -1,21 +1,23 @@
 import type { PageServerLoad } from './$types';
-import { base_url_api } from '$lib/const';
-import { type Actions, redirect } from '@sveltejs/kit';
+import { ApiService, FlashService } from '$lib/services';
 
 export const load: PageServerLoad = async (event) => {
 	try {
 
-		const statResponse = await fetch(`${base_url_api}/stat`)
+		const statResponse = await ApiService.getStat()	
 
-		if (!statResponse.ok) {
-			throw new Error('Failed to fetch data');
+		if (!statResponse.success) {
+			throw new Error(statResponse.error)
 		}
 
 		return {
-			stat: await statResponse.json()
+			stat: statResponse.data
 		};
+
 	} catch (error) {
 		console.error('Load error:', error);
+		FlashService.error(event, 'Une erreur est survenue lors de la récupération des statistiques')
+
 		return {
 			stat: null,
 			files: []

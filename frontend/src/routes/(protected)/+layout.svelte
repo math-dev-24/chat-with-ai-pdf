@@ -40,6 +40,11 @@
 								</Button>
 							</li>
 							<li>
+								<Button variant="link" href="/pdf/form">
+									Upload PDF
+								</Button>
+							</li>
+							<li>
 								<Button variant="link" href="/profil">
 									Profil
 								</Button>

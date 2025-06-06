@@ -2,12 +2,9 @@
 	import type { ChatMessage } from '$lib/types';
 	import Loader from "./loader.svelte";
 
-	// Composants shadcn-svelte
 	import { Badge } from "$lib/components/ui/badge";
-	import { ScrollArea } from "$lib/components/ui/scroll-area";
 	import { cn } from "$lib/utils";
 
-	// Icônes pour différencier les rôles
 	import { Bot, User, Settings } from "lucide-svelte";
 
 	interface Props {
@@ -18,26 +15,15 @@
 
 	let { name, messages, inLoading }: Props = $props();
 
-	// Auto-scroll vers le bas
-	let scrollContainer: HTMLElement;
+	let messagesContainer: HTMLDivElement;
 
 	$effect(() => {
-		if (scrollContainer && (messages || inLoading)) {
+		if (messagesContainer && (messages || inLoading)) {
 			setTimeout(() => {
-				scrollContainer.scrollTop = scrollContainer.scrollHeight;
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
 			}, 100);
 		}
 	});
-
-	// Fonction pour obtenir l'icône selon le rôle
-	function getRoleIcon(role: string) {
-		switch (role) {
-			case 'assistant': return Bot;
-			case 'user': return User;
-			case 'system': return Settings;
-			default: return User;
-		}
-	}
 
 	// Fonction pour obtenir la variante du badge selon le rôle
 	function getRoleBadgeVariant(role: string): "default" | "secondary" | "destructive" | "outline" {
@@ -63,7 +49,7 @@
 	</div>
 
 	<!-- Zone des messages -->
-	<ScrollArea class="flex-1 p-4" bind:viewport={scrollContainer}>
+	<div class="flex-1 p-4 overflow-auto" bind:this={messagesContainer}>
 		<div class="space-y-4">
 			{#each messages as message, index (index)}
 				<div
@@ -83,10 +69,13 @@
             )}
 					>
 						<div class="flex items-center gap-2">
-							<svelte:component
-								this={getRoleIcon(message.role)}
-								class="h-3 w-3 text-muted-foreground flex-shrink-0"
-							/>
+							{#if message.role === 'assistant'}
+								<Bot class="h-3 w-3 text-muted-foreground flex-shrink-0" />
+							{:else if message.role === 'user'}
+								<User class="h-3 w-3 text-muted-foreground flex-shrink-0" />
+							{:else}
+								<Settings class="h-3 w-3 text-muted-foreground flex-shrink-0" />
+							{/if}
 							<Badge
 								variant={getRoleBadgeVariant(message.role)}
 								class="text-xs font-medium capitalize"
@@ -110,9 +99,7 @@
 					</div>
 				</div>
 			{/if}
-
-			<!-- Espace pour éviter que le dernier message soit collé au bas -->
 			<div class="h-4"></div>
 		</div>
-	</ScrollArea>
+	</div>
 </div>

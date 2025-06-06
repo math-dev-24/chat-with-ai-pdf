@@ -1,18 +1,15 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import type { Cookies } from '@sveltejs/kit';
 
-export interface FlashMessage {
+export type FlashMessage = {
 	type: 'success' | 'error' | 'warning' | 'info';
 	message: string;
 }
 
 export class FlashService {
 	private static readonly COOKIE_NAME = 'flash-message';
-	private static readonly COOKIE_MAX_AGE = 60; // 1 minute
+	private static readonly COOKIE_MAX_AGE = 60;
 
-	/**
-	 * Définit un message flash via cookie
-	 */
 	static set(event: RequestEvent, type: FlashMessage['type'], message: string): void {
 		const flashMessage: FlashMessage = { type, message };
 
@@ -25,9 +22,6 @@ export class FlashService {
 		});
 	}
 
-	/**
-	 * Lit le message flash depuis le cookie (côté serveur)
-	 */
 	static read(cookies: Cookies): FlashMessage | null {
 		const flashCookie = cookies.get(this.COOKIE_NAME);
 
@@ -36,7 +30,6 @@ export class FlashService {
 		try {
 			const flashMessage = JSON.parse(flashCookie);
 
-			// Supprimer le cookie après lecture
 			cookies.delete(this.COOKIE_NAME, { path: '/' });
 
 			return flashMessage;
@@ -47,37 +40,22 @@ export class FlashService {
 		}
 	}
 
-	/**
-	 * Messages de succès
-	 */
 	static success(event: RequestEvent, message: string): void {
 		this.set(event, 'success', message);
 	}
 
-	/**
-	 * Messages d'erreur
-	 */
 	static error(event: RequestEvent, message: string): void {
 		this.set(event, 'error', message);
 	}
 
-	/**
-	 * Messages d'avertissement
-	 */
 	static warning(event: RequestEvent, message: string): void {
 		this.set(event, 'warning', message);
 	}
 
-	/**
-	 * Messages d'information
-	 */
 	static info(event: RequestEvent, message: string): void {
 		this.set(event, 'info', message);
 	}
-
-	/**
-	 * Messages prédéfinis pour les actions CRUD
-	 */
+	
 	static crud = {
 		created: (event: RequestEvent, entityName: string) =>
 			this.success(event, `${entityName} créé avec succès !`),

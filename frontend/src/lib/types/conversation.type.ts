@@ -1,6 +1,16 @@
-import type { Conversation, Message } from '$lib/server/db/schema';
+import type { Conversation, Message, Context } from '$lib/server/db/schema';
 
 
-export interface ConversationWithMessages extends Conversation {
+export type ConversationWithMessages = Conversation & {
 	messages: Message[];
+	contexts: Context[];
+}
+
+export type AskResponse = {
+	question: string;
+	response: string;
+	contexts: string,
+	context_length: number,
+	sources_count: number,
+	processing_time: null | number,
 }

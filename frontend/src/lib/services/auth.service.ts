@@ -3,7 +3,7 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { hash, verify } from "@node-rs/argon2";
 import { nanoid } from "nanoid";
-import type { AuthResult } from "$lib/types";
+import type { ServiceResponse } from "$lib/types";
 import type { User } from '$lib/server/db/schema';
 
 export class AuthService {
@@ -11,24 +11,18 @@ export class AuthService {
 	private static readonly MIN_USERNAME_LENGTH: number = 3;
 	private static readonly MAX_USERNAME_LENGTH: number = 31;
 
-	static async login(username: string, password: string): Promise<AuthResult<typeof table.user.$inferSelect>> {
+	static async login(username: string, password: string): Promise<ServiceResponse<typeof table.user.$inferSelect>> {
 		if (!this.validateUsername(username)) {
 			return {
 				success: false,
-				error: {
-					code: 'VALIDATION_ERROR',
-					message: `Invalid username (min ${this.MIN_USERNAME_LENGTH}, max ${this.MAX_USERNAME_LENGTH} characters, alphanumeric only)`
-				}
+				error: `Invalid username (min ${this.MIN_USERNAME_LENGTH}, max ${this.MAX_USERNAME_LENGTH} characters, alphanumeric only)`
 			};
 		}
 
 		if (!this.validatePasswordWithDetails(password).isValid) {
 			return {
 				success: false,
-				error: {
-					code: 'VALIDATION_ERROR',
-					message: 'Invalid password (min 6, max 255 characters)'
-				}
+				error: 'Invalid password (min 6, max 255 characters)'
 			};
 		}
 
@@ -39,10 +33,7 @@ export class AuthService {
 			if (!existingUser) {
 				return {
 					success: false,
-					error: {
-						code: 'AUTH_ERROR',
-						message: 'Invalid username or password'
-					}
+					error: 'Invalid username or password'
 				};
 			}
 
@@ -51,10 +42,7 @@ export class AuthService {
 			if (!validPassword) {
 				return {
 					success: false,
-					error: {
-						code: 'AUTH_ERROR',
-						message: 'Invalid username or password'
-					}
+					error: 'Invalid username or password'
 				};
 			}
 
@@ -66,24 +54,18 @@ export class AuthService {
 			console.error('Login error:', error);
 			return {
 				success: false,
-				error: {
-					code: 'SERVER_ERROR',
-					message: 'An error occurred during login'
-				}
+				error: 'An error occurred during login'
 			};
 		}
 	}
 
-	static async updatePassword(userId: string, password: string, new_password: string): Promise<AuthResult<typeof table.user.$inferSelect>> {
+	static async updatePassword(userId: string, password: string, new_password: string): Promise<ServiceResponse<typeof table.user.$inferSelect>> {
 		try {
 			const existingUser = await this.getUserById(userId);
 			if (!existingUser) {
 				return {
 					success: false,
-					error: {
-						code: 'AUTH_ERROR',
-						message: 'Incorrect username or password'
-					}
+					error: 'Incorrect username or password'
 				};
 			}
 
@@ -92,10 +74,7 @@ export class AuthService {
 			if (!isValidPassword) {
 				return {
 					success: false,
-					error: {
-						code: 'VALIDATION_ERROR',
-						message: 'New password must be different from the current password'
-					}
+					error: 'New password must be different from the current password'
 				};
 			}
 
@@ -104,10 +83,7 @@ export class AuthService {
 			if (!isSamePassword) {
 				return {
 					success: false,
-					error: {
-						code: 'AUTH_ERROR',
-						message: 'Incorrect password'
-					}
+					error: 'Incorrect password'
 				};
 			}
 
@@ -118,10 +94,7 @@ export class AuthService {
 			if (!updatedUser) {
 				return {
 					success: false,
-					error: {
-						code: 'SERVER_ERROR',
-						message: 'Failed to update profile'
-					}
+					error: 'Failed to update profile'
 				};
 			}
 
@@ -132,44 +105,35 @@ export class AuthService {
 		} catch  {
 			return {
 				success: false,
-				error: {
-					code: 'SERVER_ERROR',
-					message: 'An error occurred during update profile'
-				}
+				error: 'An error occurred during update profile'
 			};
 		}
 	}
 
 
-	static async updateUserName(userId: string, newUsername: string): Promise<AuthResult<User>> {
+	static async updateUserName(userId: string, newUsername: string): Promise<ServiceResponse<User>> {
 			const user = await this.getUserById(userId);
 
 			if(!user) {
 				return {
 					success: false,
-					error: {
-						code: "SERVER_ERROR",
-						message: 'Invalid username or password'
-					}
+					error: 'Invalid username or password'
 				}
 			}
 
 			if(user.username === newUsername) {
 				return {
-					success: false,
-					...user
+					success: true,
+					data: user
 				};
-			}
+			}	
 
 			const existingUser = await this.getUserByUsername(newUsername);
 
-			if (existingUser) {
+			if (existingUser) {	
 				return {
 					success: false,
-					error: {
-						code: "SERVER_ERROR",
-						message: 'Incorrect username or password'
-					}
+					error: 'Incorrect username or password'
 				}
 			}
 
@@ -178,28 +142,22 @@ export class AuthService {
 
 			return {
 				success: true,
-				...updatedUser
+				data: updatedUser.at(0) as typeof table.user.$inferSelect
 			}
 	}
 
-	static async register(username: string, password: string): Promise<AuthResult<string>> {
+	static async register(username: string, password: string): Promise<ServiceResponse<string>> {
 		if (!this.validateUsername(username)) {
 			return {
 				success: false,
-				error: {
-					code: 'VALIDATION_ERROR',
-					message: 'Invalid username (min 3, max 31 characters, alphanumeric only)'
-				}
+				error: 'Invalid username (min 3, max 31 characters, alphanumeric only)'
 			};
 		}
 
 		if (!this.validatePasswordWithDetails(password).isValid) {
 			return {
 				success: false,
-				error: {
-					code: 'VALIDATION_ERROR',
-					message: 'Invalid password (min 6, max 255 characters)'
-				}
+				error: 'Invalid password (min 6, max 255 characters)'
 			};
 		}
 
@@ -208,10 +166,7 @@ export class AuthService {
 			if (existingUser) {
 				return {
 					success: false,
-					error: {
-						code: 'VALIDATION_ERROR',
-						message: 'Username already taken'
-					}
+					error: 'Username already taken'
 				};
 			}
 
@@ -219,10 +174,7 @@ export class AuthService {
 			if (!userId) {
 				return {
 					success: false,
-					error: {
-						code: 'SERVER_ERROR',
-						message: 'Failed to create user'
-					}
+					error: 'Failed to create user'
 				};
 			}
 
@@ -234,10 +186,7 @@ export class AuthService {
 			console.error('Registration error:', error);
 			return {
 				success: false,
-				error: {
-					code: 'SERVER_ERROR',
-					message: 'An error occurred during registration'
-				}
+				error: 'An error occurred during registration'
 			};
 		}
 	}

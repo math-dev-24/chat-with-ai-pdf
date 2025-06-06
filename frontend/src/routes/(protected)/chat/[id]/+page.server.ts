@@ -3,7 +3,7 @@ import { ApiService, ConversationService, FlashService } from '$lib/services';
 import { type Actions, fail, redirect } from '@sveltejs/kit';
 import type { ConversationWithMessages } from '$lib/types';
 import type { Conversation } from '$lib/server/db/schema';
-import { page } from '$app/state';
+
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -104,6 +104,10 @@ export const actions: Actions = {
 
 			await ConversationService.addMessage(event.locals.user.id, convId, answer);
 			await ConversationService.addMessage(event.locals.user.id, convId, data.response, 'assistant')
+			
+			if (data.context) {
+				await ConversationService.addContext(convId, data.context);
+			}
 
 			redirect(302, `/chat/${convId}`);
 		} catch (e) {

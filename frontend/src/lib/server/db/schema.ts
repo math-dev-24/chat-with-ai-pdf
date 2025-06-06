@@ -36,7 +36,17 @@ export const message = sqliteTable('message', {
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 })
 
+export const context = sqliteTable('context', {
+	id: text('id').primaryKey(),
+	conversationId: text('conversation_id')
+		.notNull()
+		.references(() => conversation.id),
+	content: text('content').notNull(),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+})
+
 export type Session = typeof session.$inferSelect;
 export type User = typeof user.$inferSelect;
 export type Conversation = typeof conversation.$inferSelect;
 export type Message = typeof message.$inferSelect;
+export type Context = typeof context.$inferSelect;
