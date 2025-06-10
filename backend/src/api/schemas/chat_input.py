@@ -4,6 +4,10 @@ from src.api.schemas.history import HistoryMessage
 
 
 class AskDataInput(BaseModel):
+    user_id: str = Field(
+        description="ID unique de l'utilisateur",
+        min_length=1
+    )
     question: str = Field(
         description="Question text",
         min_length=1,

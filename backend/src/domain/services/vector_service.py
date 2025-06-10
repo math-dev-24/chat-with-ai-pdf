@@ -1,45 +1,47 @@
 import chromadb
-from sentence_transformers import SentenceTransformer
 from pathlib import Path
 from typing import List, Dict, Any, Union
 import logging
 import time
 from src.tools.document_processor import DocumentProcessor
+from src.domain.ports.embeding import EmbeddingPort
 
 
 class VectorStore:
     """Service de base vectorielle avec support LangChain"""
 
-    def __init__(self, collection_name: str = "documents", persist_directory: str = "./chroma_db"):
+    def __init__(self, 
+                 embedding_port: EmbeddingPort,
+                 collection_name: str = "documents", 
+                 persist_directory: str = "./chroma_db"):
         """
         Initialise le VectorStore
 
         Args:
+            embedding_port: Port d'embedding à utiliser
             collection_name: Nom de la collection Chroma
             persist_directory: Répertoire de persistance
         """
         self.persist_directory = persist_directory
         self.client = chromadb.PersistentClient(path=persist_directory)
         self.collection = self.client.get_or_create_collection(name=collection_name)
+        self.embedding_port = embedding_port
 
-        # Modèle d'embedding (gardez votre modèle actuel ou changez)
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-
-        # Nouveau processeur de documents avec LangChain
         self.document_processor = DocumentProcessor(
             chunk_size=1000,
             chunk_overlap=200
         )
 
-        logging.info(f"VectorStore initialisé avec collection '{collection_name}'")
+        logging.info(f"VectorStore initialisé avec collection '{collection_name}' et modèle '{embedding_port.get_model_name()}'")
 
-    def add_documents_from_files(self, file_paths: List[Union[Path, str]]) -> Dict[str, Any]:
+    def add_documents_from_files(self, file_paths: List[Union[Path, str]], user_id: str) -> Dict[str, Any]:
         """
         MÉTHODE MISE À JOUR: Ajoute des documents via LangChain
         Compatible avec votre code existant
 
         Args:
             file_paths: Liste des chemins de fichiers (Path objects ou strings)
+            user_id: ID unique de l'utilisateur
 
         Returns:
             Statistiques du traitement
@@ -65,8 +67,8 @@ class VectorStore:
                 'files_processed': []
             }
 
-        # Ajout à la collection
-        self._add_chunks_to_collection(chunks)
+        # Ajout à la collection avec l'ID utilisateur
+        self._add_chunks_to_collection(chunks, user_id)
 
         # Statistiques
         stats = self.document_processor.get_chunk_info(chunks)
@@ -74,25 +76,30 @@ class VectorStore:
 
         return stats
 
-    def _add_chunks_to_collection(self, chunks: List) -> None:
+    def _add_chunks_to_collection(self, chunks: List, user_id: str) -> None:
         """
         Méthode interne pour ajouter des chunks à la collection
 
         Args:
             chunks: Liste des chunks LangChain
+            user_id: ID unique de l'utilisateur
         """
         # Préparation des données pour Chroma avec IDs uniques
         texts = [chunk.page_content for chunk in chunks]
         metadatas = [chunk.metadata for chunk in chunks]
 
+        # Ajout de l'ID utilisateur aux métadonnées
+        for metadata in metadatas:
+            metadata['user_id'] = user_id
+
         # Génération d'IDs uniques pour éviter les conflits
         timestamp = int(time.time())
-        ids = [f"{chunk.metadata['source_file']}_{chunk.metadata['chunk_id']}_{timestamp}_{idx}"
+        ids = [f"{user_id}_{chunk.metadata['source_file']}_{chunk.metadata['chunk_id']}_{timestamp}_{idx}"
                for idx, chunk in enumerate(chunks)]
 
-        # Vectorisation
+        # Vectorisation via le port d'embedding
         logging.info(f"🔄 Vectorisation de {len(texts)} chunks...")
-        embeddings = self.embedding_model.encode(texts).tolist()
+        embeddings = self.embedding_port.encode(texts)
 
         # Ajout à Chroma avec gestion robuste des gros volumes
         batch_size = 50  # Réduit pour éviter les timeouts
@@ -136,30 +143,39 @@ class VectorStore:
                 # Continue avec le batch suivant plutôt que d'échouer complètement
                 continue
 
-    def get_context_for_query(self, query: str, max_context_length: int = 4000, n_results: int = 5) -> str:
+    def get_context_for_query(self, query: str, user_id: str, max_context_length: int = 4000, n_results: int = 5) -> dict:
         """
         Args:
             query: Question de l'utilisateur
+            user_id: ID unique de l'utilisateur
             max_context_length: Longueur max du contexte
-            prefer_chapters: Préférence pour les chapitres (peut être ignoré pour l'instant)
             n_results: Nombre de résultats à récupérer
 
         Returns:
-            Contexte formaté pour le LLM
+            Dictionnaire contenant:
+            - context: Contexte formaté pour le LLM
+            - sources: Liste des sources utilisées
         """
         try:
-            query_embedding = self.embedding_model.encode([query]).tolist()
+            query_embedding = self.embedding_port.encode([query])
+
+            where_clause = {"user_id": {"$eq": user_id}}
 
             results = self.collection.query(
                 query_embeddings=query_embedding,
                 n_results=n_results,
+                where=where_clause,
                 include=["documents", "metadatas", "distances"]
             )
 
             if not results["documents"] or not results["documents"][0]:
-                return "Aucun contexte trouvé."
+                return {
+                    "context": "Aucun contexte trouvé.",
+                    "sources": []
+                }
 
             context_parts = []
+            sources = set()
             current_length = 0
 
             documents = results["documents"][0]
@@ -174,6 +190,7 @@ class VectorStore:
                 if metadata:
                     source_file = metadata.get('source_file', 'Unknown')
                     page_info = metadata.get('page', '')
+                    sources.add(source_file)
                     if page_info:
                         source_info = f"[Source: {source_file}, Page: {page_info}]"
                     else:
@@ -186,11 +203,17 @@ class VectorStore:
             context = "\n".join(context_parts)
 
             logging.info(f"🔍 Contexte généré: {len(context)} caractères, {len(context_parts)} sources")
-            return context
+            return {
+                "context": context,
+                "sources": list(sources)
+            }
 
         except Exception as e:
             logging.error(f"❌ Erreur lors de la recherche: {e}")
-            return f"Erreur lors de la recherche: {str(e)}"
+            return {
+                "context": f"Erreur lors de la recherche: {str(e)}",
+                "sources": []
+            }
 
     def search_with_metadata(self, query: str, n_results: int = 5, file_filter: str = None) -> Dict[str, Any]:
         """
@@ -203,7 +226,7 @@ class VectorStore:
             Résultats de la recherche
         """
         try:
-            query_embedding = self.embedding_model.encode([query]).tolist()
+            query_embedding = self.embedding_port.encode([query])
 
             # Filtrage optionnel par fichier
             where_clause = {}
@@ -222,9 +245,11 @@ class VectorStore:
             logging.error(f"❌ Erreur recherche avec métadonnées: {e}")
             return {"error": str(e)}
 
-    def get_file_list(self) -> List[str]:
+    def get_file_list(self, user_id: str) -> List[str]:
         try:
-            all_data = self.collection.get(include=["metadatas"])
+            # Filtre par utilisateur
+            where_clause = {"user_id": {"$eq": user_id}}
+            all_data = self.collection.get(where=where_clause, include=["metadatas"])
             files = set()
             for metadata in all_data["metadatas"]:
                 if metadata and "source_file" in metadata:
@@ -234,10 +259,12 @@ class VectorStore:
             logging.error(f"❌ Erreur récupération liste fichiers: {e}")
             return []
 
-    def get_collection_stats(self) -> Dict[str, Any]:
+    def get_collection_stats(self, user_id: str) -> Dict[str, Any]:
         try:
-            count = self.collection.count()
-            files = self.get_file_list()
+            where_clause = {"user_id": {"$eq": user_id}}
+            results = self.collection.get(where=where_clause)
+            count = len(results["ids"]) if results["ids"] else 0
+            files = self.get_file_list(user_id)
 
             return {
                 "total_chunks": count,
@@ -253,36 +280,47 @@ class VectorStore:
                 "error": str(e)
             }
 
-    def clear_collection(self) -> bool:
+    def clear_collection(self, user_id: str) -> bool:
         try:
-            # Supprime et recrée la collection
-            collection_name = self.collection.name
-            self.client.delete_collection(collection_name)
-            self.collection = self.client.create_collection(collection_name)
-            logging.info("🗑️ Collection vidée avec succès")
+            # Supprime uniquement les documents de l'utilisateur
+            where_clause = {"user_id": {"$eq": user_id}}
+            results = self.collection.get(where=where_clause)
+            if results["ids"]:
+                self.collection.delete(ids=results["ids"])
+            logging.info(f"🗑️ Documents de l'utilisateur {user_id} supprimés avec succès")
             return True
         except Exception as e:
             logging.error(f"❌ Erreur lors du vidage: {e}")
             return False
 
-    def get_collection_size(self) -> int:
+    def get_collection_size(self, user_id: str) -> int:
         try:
-            return self.collection.count()
+            where_clause = {"user_id": {"$eq": user_id}}
+            results = self.collection.get(where=where_clause)
+            return len(results["ids"]) if results["ids"] else 0
         except Exception as e:
             logging.error(f"❌ Erreur lors du comptage: {e}")
             return 0
 
-    def delete_file_chunks(self, file_name: str) -> bool:
+    def delete_file_chunks(self, file_name: str, user_id: str) -> bool:
         """
         Args:
             file_name: Nom du fichier à supprimer
+            user_id: ID unique de l'utilisateur
 
         Returns:
             True si succès
         """
         try:
+            where_clause = {
+                "$and": [
+                    {"source_file": {"$eq": file_name}},
+                    {"user_id": {"$eq": user_id}}
+                ]
+            }
+            
             results = self.collection.get(
-                where={"source_file": {"$eq": file_name}},
+                where=where_clause,
                 include=["metadatas"]
             )
 

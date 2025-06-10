@@ -10,6 +10,7 @@ class AskDataResponse(BaseModel):
     context: str = Field(description="Contexte utilisé pour la réponse")
     context_length: int = Field(description="Longueur du contexte")
     sources_count: int = Field(description="Nombre de sources utilisées")
+    sources: List[str] = Field(description="Liste des sources utilisées")
     processing_time: Optional[float] = Field(
         default=None,
         description="Temps de traitement en secondes"
