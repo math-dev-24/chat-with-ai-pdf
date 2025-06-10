@@ -3,9 +3,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { MessageCircle } from 'lucide-svelte';
+	import { Loader2, MessageCircle } from 'lucide-svelte';
 
 	let name = $state('Nouvelle conversation');
+	let inLoading = $state(false);
 </script>
 
 <Card class="w-full max-w-2xl mx-auto">
@@ -20,8 +21,10 @@
 			method="POST"
 			action="?/createNewConversation"
 			use:enhance={() => {
+				inLoading = true;
 				return async ({ update }) => {
 					await update();
+					inLoading = false;
 				};
 			}}
 			class="space-y-4"
@@ -33,8 +36,12 @@
 				required
 				class="w-full"
 			/>
-			<Button type="submit" class="w-full">
-				Créer la conversation
+			<Button type="submit" class="w-full" disabled={inLoading}>	
+				{#if inLoading}
+					<Loader2 class="h-4 w-4 animate-spin" />
+				{:else}
+					Créer la conversation
+				{/if}
 			</Button>
 		</form>
 	</CardContent>

@@ -23,7 +23,6 @@ export const load: PageServerLoad = async ({locals, url}) => {
 export const actions: Actions = {
 	default: async (event) => {
 		const formData = await event.request.formData();
-		console.log(formData);
 		const username = formData.get('username');
 		const password = formData.get('password');
 		const from = formData.get('from')?.toString() || '/'; // ← Récupérer le paramètre 'from'

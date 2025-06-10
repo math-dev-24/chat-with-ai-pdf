@@ -4,12 +4,13 @@
 	import CardConv from '$lib/components/chat/conversation/card.svelte';
 	import NewConversation from '$lib/components/chat/new-conversation.svelte';
 
-	// Composants shadcn-svelte
+
 	import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "$lib/components/ui/card";
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Separator } from '$lib/components/ui/separator';
+	import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "$lib/components/ui/sheet";
 
 	// Icônes Lucide
 	import {
@@ -19,7 +20,8 @@
 		Settings,
 		LogOut,
 		Menu,
-		X
+		X,
+		FileText
 	} from 'lucide-svelte';
 
 	import type { StateChat } from '$lib/types';
@@ -42,7 +44,6 @@
 	let stateChat = $state<StateChat>({
 		answer: "",
 		inLoading: false,
-		context: [],
 		errors: [],
 		showContext: false
 	});
@@ -222,5 +223,48 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Sheet pour afficher le contexte -->
+		<Sheet bind:open={stateChat.showContext} onOpenChange={(value) => stateChat.showContext = value}>
+			<SheetContent side="right" class="!min-w-[800px]">
+				<SheetHeader>
+					<SheetTitle class="flex items-center gap-2">
+						<FileText class="h-5 w-5" />
+						Contexte de la conversation
+					</SheetTitle>
+					<SheetDescription>
+						Documents et informations utilisés pour générer les réponses
+					</SheetDescription>
+				</SheetHeader>
+				<div class="mt-6">
+					<ScrollArea class="h-[calc(100vh-200px)]">
+						{#if data?.actual_conversation && data?.actual_conversation?.contexts && data?.actual_conversation?.contexts.length === 0}
+							<div class="text-center text-muted-foreground py-8">
+								Aucun contexte disponible
+							</div>
+						{:else}
+							<div class="space-y-4">
+								{#each data?.actual_conversation?.contexts || [] as context}
+									{#each context.content.split('---') as item}
+										{#if item.includes('[Source:')}
+										<Card>
+											<CardContent class="p-4">
+												<h3 class="text-sm font-medium mb-2">{item.split(']')[0].replace('[Source: ', '')}</h3>
+												<p class="text-sm">{item.split(']')[1]}</p>
+											</CardContent>
+											<CardFooter class="flex justify-between items-center">
+												<span class="text-xs text-muted-foreground">{context.id}</span>
+												<span class="text-xs text-muted-foreground">{new Date(context.createdAt).toLocaleDateString()}</span>
+											</CardFooter>
+										</Card>
+										{/if}
+									{/each}
+								{/each}
+							</div>
+						{/if}
+					</ScrollArea>
+				</div>
+			</SheetContent>
+		</Sheet>
 	</main>
 </div>

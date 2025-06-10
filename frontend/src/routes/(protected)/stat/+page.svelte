@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { base_url_api } from '$lib/const';
-
+	import { ApiService } from '$lib/services/api.service';
 	import { Card, CardContent, CardHeader, CardTitle } from "$lib/components/ui/card";
 	import { Button } from "$lib/components/ui/button";
 	import { Alert, AlertDescription } from "$lib/components/ui/alert";
 	import { ScrollArea } from "$lib/components/ui/scroll-area";
+	import { invalidateAll } from '$app/navigation';
 
 	import {
 		FileText,
@@ -31,16 +31,21 @@
 			error = null;
 			success = false;
 
-			const response = await fetch(`${base_url_api}/pdfs/process-all`, {
-				method: 'POST'
-			});
+			if(!data.user) {
+				throw new Error('Utilisateur non trouvé');
+			}
 
-			if (!response.ok) {
-				throw new Error(`Erreur HTTP: ${response.status}`);
+			const response = await ApiService.loadPdf(data.user.id);
+
+			if (!response.success) {
+				throw new Error(response.error || 'Une erreur est survenue lors du traitement des pdfs');
 			}
 
 			success = true;
-			setTimeout(() => success = false, 3000);
+			await invalidateAll();
+			setTimeout(() => {
+				success = false;
+			}, 3000);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Une erreur est survenue';
 			console.error('Erreur lors du traitement des PDFs:', err);
@@ -56,27 +61,32 @@
 
 		try {
 			deletingFile = fileName;
-			const response = await fetch(`/api/files/${fileName}`, {
-				method: 'DELETE'
-			});
 
-			if (!response.ok) {
-				throw new Error(`Erreur HTTP: ${response.status}`);
+			if(!data.user) {
+				throw new Error('Utilisateur non trouvé');
 			}
 
-			data.stat.files = data.stat.files.filter((file: string) => file !== fileName);
-			data.stat.total_files--;
+			const response = await ApiService.deleteFile(data.user.id, fileName);
+
+			if (!response.success) {
+				throw new Error(response.error || 'Une erreur est survenue lors de la suppression du fichier');
+			}
+
 			success = true;
-			setTimeout(() => success = false, 3000);
+			await invalidateAll();
+			setTimeout(() => {
+				success = false;
+			}, 3000);
+
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Une erreur est survenue';
-			console.error('Erreur lors de la suppression du fichier:', err);
 		} finally {
 			deletingFile = null;
 		}
 	};
 </script>
 
+{#if data.stat}
 <div class="max-w-4xl mx-auto p-6 space-y-6">
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 		<Card class="hover:shadow-md transition-shadow">
@@ -188,3 +198,4 @@
 		</Button>
 	</div>
 </div>
+{/if}

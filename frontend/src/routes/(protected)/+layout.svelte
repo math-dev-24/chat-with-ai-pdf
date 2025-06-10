@@ -9,7 +9,7 @@
 
 	const isCurrentPath = (href: string) => page.url.pathname === href
 
-	const listMenu: {label: string, href: string, isCurrentPath: boolean}[] = [
+	const listMenu: {label: string, href: string, isCurrentPath: boolean}[] = $derived([
 		{
 			label: 'Home',
 			href: '/',
@@ -35,7 +35,7 @@
 			href: '/profil',
 			isCurrentPath: isCurrentPath('/profil')
 		}		
-	]
+	])
 
 </script>
 

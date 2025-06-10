@@ -4,6 +4,7 @@
   import { writable } from 'svelte/store';
   import { base_url_api } from '$lib/const';
 
+  let { data } = $props();
   const isUploading = writable(false);      
   const selectedFiles = writable<File[]>([]);
 
@@ -14,15 +15,23 @@
     }
   };
 
-  const uploadFiles = async () => {
+  const uploadFiles = async (event: Event) => {
+    event.preventDefault();
     const files = $selectedFiles;
     if (files.length === 0) {
       alert('Veuillez sélectionner au moins un fichier PDF');
       return;
     }
 
+    if (!data.user) {
+      alert('Utilisateur non connecté');
+      return;
+    }
+
     isUploading.set(true);
     const formData = new FormData();
+    
+    formData.append('user_id', data.user.id);
     
     files.forEach((file: File) => {
       formData.append('files', file);
@@ -35,7 +44,8 @@
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de l\'upload');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Erreur lors de l\'upload');
       }
 
       alert('Les fichiers ont été uploadés avec succès');
@@ -44,6 +54,7 @@
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (error) {
+      console.error('Erreur upload:', error);
       alert('Une erreur est survenue lors de l\'upload des fichiers');
     } finally {
       isUploading.set(false);
@@ -59,7 +70,7 @@
     </CardDescription>
   </CardHeader>
   <CardContent>
-    <form on:submit|preventDefault={uploadFiles} class="space-y-4">
+    <form onsubmit={uploadFiles} class="space-y-4">
       <div class="grid w-full max-w-sm items-center gap-1.5">
         <label
           for="pdf-files"
@@ -72,7 +83,7 @@
           id="pdf-files"
           accept=".pdf"
           multiple
-          on:change={handleFileChange}
+          onchange={handleFileChange}
           class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>

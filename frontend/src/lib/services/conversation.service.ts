@@ -125,11 +125,12 @@ export class ConversationService {
 
 	}
 
-	static async addContext(conversationId: string, content: string): Promise<Context> {
+	static async addContext(conversationId: string, content: string, sources: string[] = []): Promise<Context> {
 		const newContext = {
 			id: nanoid(),
 			conversationId,
 			content,
+			sources: JSON.stringify(sources),
 			createdAt: new Date()
 		}
 

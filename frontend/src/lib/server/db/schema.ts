@@ -30,7 +30,7 @@ export const message = sqliteTable('message', {
 	id: text('id').primaryKey(),
 	conversationId: text('conversation_id')
 		.notNull()
-		.references(() => conversation.id),
+		.references(() => conversation.id, { onDelete: 'cascade' }),
 	role: text('role', {enum: ['user', 'system', 'assistant']}).notNull(),
 	message: text('message').notNull(),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
@@ -40,8 +40,9 @@ export const context = sqliteTable('context', {
 	id: text('id').primaryKey(),
 	conversationId: text('conversation_id')
 		.notNull()
-		.references(() => conversation.id),
+		.references(() => conversation.id, { onDelete: 'cascade' }),
 	content: text('content').notNull(),
+	sources: text('sources').notNull().default('[]'),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 })
 

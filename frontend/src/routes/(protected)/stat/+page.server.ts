@@ -2,9 +2,15 @@ import type { PageServerLoad } from './$types';
 import { ApiService, FlashService } from '$lib/services';
 
 export const load: PageServerLoad = async (event) => {
-	try {
+	if (!event.locals.user) {
+		return {
+			stat: null,
+			files: []
+		};
+	}
 
-		const statResponse = await ApiService.getStat()	
+	try {
+		const statResponse = await ApiService.getStat(event.locals.user.id)	
 
 		if (!statResponse.success) {
 			throw new Error(statResponse.error)

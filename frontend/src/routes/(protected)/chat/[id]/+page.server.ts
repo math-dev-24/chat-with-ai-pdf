@@ -26,7 +26,7 @@ export const load: PageServerLoad = async (event) => {
 		const conversation: ConversationWithMessages = await ConversationService.getConversation(
 			params.id
 		);
-		console.log(conversation);
+
 		const listConversation: Conversation[] = await ConversationService.getUserConversation(
 			event.locals.user.id
 		);
@@ -37,6 +37,7 @@ export const load: PageServerLoad = async (event) => {
 			isNew: false
 		};
 	} catch (error) {
+		console.error('Error loading conversation:', error);
 		FlashService.error(event, 'Conversation non trouvée');
 		return redirect(302, '/chat/new');
 	}
@@ -73,10 +74,8 @@ export const actions: Actions = {
 
 		if (!convId) {
 			FlashService.error(event, "Pas d'id !");
-			return fail(400);
+			return fail(400, {error: "Pas d'id !"});
 		}
-
-		console.log("delete", fromId, convId);
 
 		try {
 			await ConversationService.deleteConversation(event.locals.user.id, convId);
@@ -92,9 +91,9 @@ export const actions: Actions = {
 			}
 			throw redirect(302, '/chat/new');
 		} catch (error) {
-			console.log("error", error);
+			console.error('Error deleting conversation:', error);
 			FlashService.error(event, 'Erreur lors de la suppression de la conversation');
-			return fail(500);
+			return fail(500, {error: "Erreur lors de la suppression de la conversation"});
 		}
 	},
 
@@ -102,20 +101,21 @@ export const actions: Actions = {
 		if (!event.locals.user) {
 			throw redirect(302, '/login');
 		}
+
 		const formData = await event.request.formData();
 		const convId = event.params.id;
 		const answer = formData.get('answer');
 
 		if (!convId || !answer || typeof answer !== 'string') {
 			FlashService.error(event, 'Une erreur est survenue !');
-			return fail(400);
+			return fail(400, {error: "Une erreur est survenue !"});
 		}
 
 		try {
-			const res = await ApiService.ask(answer, [])
+			const res = await ApiService.ask(event.locals.user.id, answer, [])
 			if(!res.success) {
 				FlashService.error(event, res.error);
-				return fail(400);
+				return fail(400, {error: res.error});
 			}
 			
 			const data = res.data
@@ -124,12 +124,14 @@ export const actions: Actions = {
 			await ConversationService.addMessage(event.locals.user.id, convId, data.response, 'assistant')
 			
 			if (data.context) {
-				await ConversationService.addContext(convId, data.context);
+				await ConversationService.addContext(convId, data.context, data.sources);
 			}
 
-			throw redirect(302, `/chat/${convId}`);
+			return redirect(302, `/chat/${convId}`);
 		} catch (e) {
-			return fail(400, {error: e})
+			console.error('Error posting message:', e);
+			FlashService.error(event, 'Une erreur est survenue lors de l\'envoi du message');
+				return fail(500, { error: e instanceof Error ? e.message : 'Une erreur inconnue est survenue' });
 		}
 	},
 
@@ -147,7 +149,7 @@ export const actions: Actions = {
 			throw redirect(302, `/chat/${id}`);
 		} catch (error) {
 			FlashService.error(event, 'Erreur lors de la création de la conversation');
-			return fail(500);
+			return fail(500, {error: "Erreur lors de la création de la conversation"});
 		}
 	}
 };

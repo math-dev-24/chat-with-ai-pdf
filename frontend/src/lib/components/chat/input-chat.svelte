@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from "$app/state";
+	import { enhance } from "$app/forms";
 
 	// Composants shadcn-svelte
 	import { Button } from "$lib/components/ui/button";
@@ -28,7 +29,7 @@
 	}: Props = $props();
 
 	let isDisabled = $derived(!answer.trim() || inLoading);
-	let textareaElement: HTMLTextAreaElement;
+	let textareaElement: any;
 
 	// Auto-resize du textarea
 	function handleInput() {
@@ -68,6 +69,13 @@
 	<form
 		method="POST"
 		action={`/chat/${page.params.id}?/postMessage`}
+		use:enhance={() => {
+			inLoading = true;
+			return async ({update}) => {
+				await update();
+				inLoading = false;
+			}
+		}}
 		class="p-4"
 	>
 		<!-- Zone de saisie -->

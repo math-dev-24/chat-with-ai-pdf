@@ -93,7 +93,7 @@
 							style={`transition-delay: ${index * 200}ms`}>
 					<CardHeader>
 						<div class="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg mb-4">
-							<svelte:component this={feature.icon} class="h-6 w-6 text-primary" />
+							<feature.icon class="h-6 w-6 text-primary" />
 						</div>
 						<CardTitle>{feature.title}</CardTitle>
 					</CardHeader>
@@ -118,7 +118,7 @@
 					<div class={`text-center transition-all duration-700 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
 							 style={`transition-delay: ${index * 150}ms`}>
 						<div class="flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4">
-							<svelte:component this={stat.icon} class="h-8 w-8 text-primary" />
+							<stat.icon class="h-8 w-8 text-primary" />
 						</div>
 						<div class="text-3xl font-bold mb-2">{stat.value}</div>
 						<div class="text-muted-foreground">{stat.label}</div>

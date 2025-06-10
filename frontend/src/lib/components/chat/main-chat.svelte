@@ -11,9 +11,10 @@
 		name: string;
 		messages: ChatMessage[];
 		inLoading: boolean;
+		error?: string;
 	}
 
-	let { name, messages, inLoading }: Props = $props();
+	let { name, messages, inLoading, error = '' }: Props = $props();
 
 	let messagesContainer: HTMLDivElement;
 
@@ -25,7 +26,6 @@
 		}
 	});
 
-	// Fonction pour obtenir la variante du badge selon le rôle
 	function getRoleBadgeVariant(role: string): "default" | "secondary" | "destructive" | "outline" {
 		switch (role) {
 			case 'assistant': return 'default';
@@ -51,6 +51,14 @@
 	<!-- Zone des messages -->
 	<div class="flex-1 p-4 overflow-auto" bind:this={messagesContainer}>
 		<div class="space-y-4">
+			{#if error}
+				<div class="flex justify-center">
+					<div class="bg-destructive/10 text-destructive px-4 py-2 rounded-lg text-sm">
+						{error}
+					</div>
+				</div>
+			{/if}
+
 			{#each messages as message, index (index)}
 				<div
 					class={cn(

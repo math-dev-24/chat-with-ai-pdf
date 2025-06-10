@@ -4,10 +4,17 @@ export type ChatMessage = {
 	message: string;
 }
 
+export type Context = {
+	id: string;
+	conversationId: string;
+	content: string;
+	createdAt: string;
+	sources: string[];
+}
+
 export type StateChat = {
 	answer: string;
 	inLoading: boolean;
-	context: string[],
 	errors: string[],
 	showContext: boolean
 }

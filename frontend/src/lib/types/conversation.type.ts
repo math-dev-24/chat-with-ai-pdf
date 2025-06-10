@@ -12,5 +12,6 @@ export type AskResponse = {
 	context: string;
 	context_length: number,
 	sources_count: number,
+	sources: string[],
 	processing_time: null | number,
 }
