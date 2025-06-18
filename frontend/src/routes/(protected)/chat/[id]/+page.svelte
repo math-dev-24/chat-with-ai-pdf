@@ -225,7 +225,7 @@
 		</div>
 
 		<!-- Sheet pour afficher le contexte -->
-		<Sheet bind:open={stateChat.showContext} onOpenChange={(value) => stateChat.showContext = value}>
+		<Sheet bind:open={stateChat.showContext} onOpenChange={(value: boolean) => stateChat.showContext = value}>
 			<SheetContent side="right" class="!min-w-[800px]">
 				<SheetHeader>
 					<SheetTitle class="flex items-center gap-2">

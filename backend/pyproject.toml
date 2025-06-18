@@ -1,0 +1,148 @@
+[project]
+name = "chat-with-ai-pdf-backend"
+version = "0.1.0"
+description = "Backend API for AI-powered PDF chat application"
+authors = [
+    { name = "BUSSE Mathieu", email = "mathieu.busse24@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["ai", "pdf", "chat", "fastapi", "langchain"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    # Web framework - versions stables
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    # AI and ML
+    "openai>=1.79.0",
+    "langchain>=0.3.25",
+    "langchain-community>=0.3.24",
+    "sentence-transformers>=4.1.0",
+    # Vector database - version stable
+    "chromadb>=0.4.22",
+    # PDF processing
+    "PyMuPDF>=1.25.5",
+    # HTTP client
+    "requests>=2.32.3",
+    "httpx>=0.28.1",
+    "httpcore>=1.0.9",
+    # Data processing - version compatible avec Python 3.10+
+    "numpy>=1.24.0",
+    "pydantic>=2.11.4",
+    "pydantic-core>=2.33.2",
+    # Utilities
+    "python-dotenv>=1.1.0",
+    "python-multipart>=0.0.6",
+    "tqdm>=4.67.1",
+    "colorama>=0.4.6",
+    "distro>=1.9.0",
+    # Type hints
+    "typing-extensions>=4.13.2",
+    "typing-inspection>=0.4.0",
+    "annotated-types>=0.7.0",
+    "dotenv>=0.9.9",
+    "pypdf>=5.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "httpx>=0.28.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/chat-with-ai-pdf"
+Repository = "https://github.com/yourusername/chat-with-ai-pdf"
+Documentation = "https://github.com/yourusername/chat-with-ai-pdf#readme"
+Issues = "https://github.com/yourusername/chat-with-ai-pdf/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "fastapi.*",
+    "uvicorn.*",
+    "pydantic.*",
+    "langchain.*",
+    "chromadb.*",
+    "sentence_transformers.*",
+    "PyMuPDF.*",
+]
+ignore_missing_imports = true

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -22,9 +23,11 @@
 			action="?/createNewConversation"
 			use:enhance={() => {
 				inLoading = true;
-				return async ({ update }) => {
-					await update();
+				return async ({ result }) => {
 					inLoading = false;
+					if (result.type === 'redirect') {
+						await goto(result.location);
+					}
 				};
 			}}
 			class="space-y-4"

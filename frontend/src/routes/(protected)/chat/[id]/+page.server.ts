@@ -137,7 +137,7 @@ export const actions: Actions = {
 
 	createNewConversation: async (event) => {
 		if (!event.locals.user) {
-			throw redirect(302, '/login');
+			return redirect(302, '/login');
 		}
 
 		const formData = await event.request.formData();
@@ -146,7 +146,7 @@ export const actions: Actions = {
 		try {
 			const { id } = await ConversationService.initConversation(name, event.locals.user.id);
 			FlashService.success(event, 'Nouvelle conversation créée !');
-			throw redirect(302, `/chat/${id}`);
+			return redirect(302, `/chat/${id}`);
 		} catch (error) {
 			FlashService.error(event, 'Erreur lors de la création de la conversation');
 			return fail(500, {error: "Erreur lors de la création de la conversation"});
