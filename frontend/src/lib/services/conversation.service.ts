@@ -10,6 +10,8 @@ import { conversation, type Conversation, type Message, message, context, type C
 export class ConversationService {
 
 	static async initConversation(name: string, userId: string): Promise<Conversation> {
+		console.log('Initializing conversation:', name, 'for user:', userId);
+		
 		const newConversation = {
 			id: nanoid(),
 			name: name,
@@ -20,9 +22,12 @@ export class ConversationService {
 
 		try {
 			const tmpConversation = await db.insert(table.conversation).values(newConversation).returning()
-			return tmpConversation.at(0) as Conversation;
-		} catch {
-			throw Error('Error initializing conversation');
+			const result = tmpConversation.at(0) as Conversation;
+			console.log('Conversation created:', result);
+			return result;
+		} catch (error) {
+			console.error('Error creating conversation:', error);
+			throw Error('Failed to create conversation');
 		}
 	}
 
@@ -32,12 +37,17 @@ export class ConversationService {
 	}
 
 	static async getConversation(id: string): Promise<ConversationWithMessages> {
+		console.log('Getting conversation with id:', id);
+		
 		const tmpConversation = (await db.select().from(table.conversation)
 			.where(eq(conversation.id, id))).at(0);
 
 		if(!tmpConversation){
-			throw Error('Error initializing conversation');
+			console.log('Conversation not found with id:', id);
+			throw Error('Conversation not found');
 		}
+
+		console.log('Found conversation:', tmpConversation);
 
 		const messages = await db.select().from(table.message)
 			.where(eq(message.conversationId, tmpConversation.id))
@@ -108,21 +118,26 @@ export class ConversationService {
 	}
 
 	static async deleteConversation(userId: string, convId: string): Promise<void> {
+		console.log('Deleting conversation:', convId, 'for user:', userId);
 
 		const tmp = (await db.select().from(table.conversation)
 			.where(eq(conversation.id, convId))).at(0)
 
 		if(!tmp) {
-			throw Error('Error initializing conversation');
+			console.log('Conversation not found for deletion:', convId);
+			throw Error('Conversation not found');
 		}
 
 		if(tmp.userId !== userId){
-			throw Error('Error initializing conversation');
+			console.log('User not authorized to delete conversation:', userId, 'conversation belongs to:', tmp.userId);
+			throw Error('Not authorized to delete this conversation');
 		}
 
+		console.log('Deleting messages for conversation:', convId);
 		await db.delete(table.message).where(eq(message.conversationId, convId))
+		
+		console.log('Deleting conversation:', convId);
 		await db.delete(table.conversation).where(eq(conversation.id, convId))
-
 	}
 
 	static async addContext(conversationId: string, content: string, sources: string[] = []): Promise<Context> {

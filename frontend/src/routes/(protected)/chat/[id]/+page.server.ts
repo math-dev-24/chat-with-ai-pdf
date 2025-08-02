@@ -11,11 +11,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 	const { params } = event;
 
-	if (!params.id) {
-		return redirect(302, '/chat/new');
-	}
-
-	if (params.id === 'new') {
+	if (params.id === 'new' || !params.id) {
 		return {
 			isNew: true,
 			list_conversations: await ConversationService.getUserConversation(event.locals.user.id)
@@ -36,6 +32,7 @@ export const load: PageServerLoad = async (event) => {
 			list_conversations: listConversation,
 			isNew: false
 		};
+
 	} catch (error) {
 		console.error('Error loading conversation:', error);
 		FlashService.error(event, 'Conversation non trouvée');
@@ -46,7 +43,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
 	updateNameConversation: async (event) => {
 		if (!event.locals.user) {
-			throw redirect(302, '/login');
+			return redirect(302, '/login');
 		}
 
 		const formData = await event.request.formData();
@@ -60,12 +57,12 @@ export const actions: Actions = {
 
 		await ConversationService.updateNameConversation(event.locals.user.id, id, name);
 		FlashService.success(event, "Conversation mise à jour !");
-		throw redirect(302, `/chat/${id}`);
+		return redirect(302, `/chat/${id}`);
 	},
 
 	deleteConversation: async (event) => {
 		if (!event.locals.user) {
-			throw redirect(302, '/login');
+			return redirect(302, '/login');
 		}
 
 		const formData = await event.request.formData();
@@ -87,9 +84,9 @@ export const actions: Actions = {
 
 			const list = await ConversationService.getUserConversation(event.locals.user.id);
 			if (list.length > 0) {
-				throw redirect(302, `/chat/${list[0].id}`);
+				return redirect(302, `/chat/${list[0].id}`);
 			}
-			throw redirect(302, '/chat/new');
+			return redirect(302, '/chat/new');
 		} catch (error) {
 			console.error('Error deleting conversation:', error);
 			FlashService.error(event, 'Erreur lors de la suppression de la conversation');
@@ -99,7 +96,7 @@ export const actions: Actions = {
 
 	postMessage: async (event) => {
 		if (!event.locals.user) {
-			throw redirect(302, '/login');
+			return redirect(302, '/login');
 		}
 
 		const formData = await event.request.formData();
@@ -141,9 +138,10 @@ export const actions: Actions = {
 		}
 
 		const formData = await event.request.formData();
+
 		const name = formData.get('name')?.toString() || 'Nouvelle conversation';
 
-		try {
+			try {
 			const { id } = await ConversationService.initConversation(name, event.locals.user.id);
 			FlashService.success(event, 'Nouvelle conversation créée !');
 			return redirect(302, `/chat/${id}`);

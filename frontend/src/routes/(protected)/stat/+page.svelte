@@ -10,7 +10,6 @@
 		FileText,
 		Folder,
 		Database,
-		Zap,
 		CheckCircle,
 		AlertCircle,
 		Loader2,
@@ -20,39 +19,9 @@
 
 	let { data } = $props();
 
-	let inLoading = $state<boolean>(false);
 	let error = $state<string | null>(null);
 	let success = $state<boolean>(false);
 	let deletingFile = $state<string | null>(null);
-
-	const handlePdfLoad = async () => {
-		try {
-			inLoading = true;
-			error = null;
-			success = false;
-
-			if(!data.user) {
-				throw new Error('Utilisateur non trouvé');
-			}
-
-			const response = await ApiService.loadPdf(data.user.id);
-
-			if (!response.success) {
-				throw new Error(response.error || 'Une erreur est survenue lors du traitement des pdfs');
-			}
-
-			success = true;
-			await invalidateAll();
-			setTimeout(() => {
-				success = false;
-			}, 3000);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Une erreur est survenue';
-			console.error('Erreur lors du traitement des PDFs:', err);
-		} finally {
-			inLoading = false;
-		}
-	};
 
 	const handleDeleteFile = async (fileName: string) => {
 		if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
@@ -181,21 +150,5 @@
 		</Alert>
 	{/if}
 
-	<div class="flex justify-center pt-4">
-		<Button
-			onclick={handlePdfLoad}
-			disabled={inLoading}
-			size="lg"
-			class="min-w-[200px] gap-2"
-		>
-			{#if inLoading}
-				<Loader2 class="h-4 w-4 animate-spin" />
-				Traitement en cours...
-			{:else}
-				<Zap class="h-4 w-4" />
-				Traiter les PDFs
-			{/if}
-		</Button>
-	</div>
 </div>
 {/if}

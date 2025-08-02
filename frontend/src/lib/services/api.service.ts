@@ -15,7 +15,7 @@ export class ApiService {
 			const data = await response.json()
 			return {
 				success: true,
-				data: data
+				data: data as unknown as Stat
 			}
 		} catch {
 			return {

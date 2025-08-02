@@ -9,14 +9,13 @@ from src.domain.ports.embeding import EmbeddingPort
 
 class VectorStore:
     """Service de base vectorielle avec support LangChain"""
-
     def __init__(self, 
                  embedding_port: EmbeddingPort,
                  collection_name: str = "documents", 
-                 persist_directory: str = "./chroma_db"):
+                 persist_directory: str = "./chroma_db"
+        ):
         """
         Initialise le VectorStore
-
         Args:
             embedding_port: Port d'embedding à utiliser
             collection_name: Nom de la collection Chroma
